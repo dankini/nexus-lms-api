@@ -1,0 +1,1136 @@
+openapi: 3.1.0
+info:
+  title: Busuu Nexus API
+  description: |
+    A public-facing API for LMS integrations and data access.
+
+    This API provides read-only access to core Busuu learning data including:
+    - Enhanced user information with organizational context
+    - Optimized course catalogs with provider-level metadata
+    - Aligned progress tracking with course duration consistency
+
+    Designed for enterprise LMS connectors and institutional integrations.
+  version: 0.3.0
+  contact:
+    name: Busuu API Team
+    email: api-support@busuu.com
+  license:
+    name: Proprietary
+    url: https://busuu.com/terms
+
+servers:
+  - url: https://api.busuu.com/v1
+    description: Production server
+  - url: https://api-staging.busuu.com/v1
+    description: Staging server
+
+security:
+  - BearerAuth: []
+
+paths:
+  # Authentication
+  /auth/token:
+    post:
+      summary: Create access token
+      description: Authenticate and receive an access token for API access
+      tags:
+        - Authentication
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - client_id
+                - client_secret
+                - grant_type
+              properties:
+                client_id:
+                  type: string
+                  description: Client identifier
+                  example: "client-id-here"
+                client_secret:
+                  type: string
+                  description: Client secret
+                  example: "client-secret-here"
+                grant_type:
+                  type: string
+                  enum: [client_credentials]
+                  description: OAuth2 grant type
+                  example: "client_credentials"
+                scope:
+                  type: string
+                  description: Requested permissions scope
+                  example: "read:users read:courses read:progress"
+      responses:
+        "200":
+          description: Successful authentication
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token:
+                    type: string
+                    description: Bearer token for API access
+                    example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                  token_type:
+                    type: string
+                    enum: [Bearer]
+                    example: "Bearer"
+                  expires_in:
+                    type: integer
+                    description: Token expiration time in seconds
+                    example: 3600
+                  scope:
+                    type: string
+                    description: Granted permissions scope
+                    example: "read:users read:courses read:progress"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  # Users
+  /users:
+    get:
+      summary: List all users
+      description: Retrieve a paginated list of all users
+      tags:
+        - Users
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Sort"
+        - name: status
+          in: query
+          description: Filter by user status
+          schema:
+            type: string
+            enum: [active, removed]
+        - name: role
+          in: query
+          description: Filter by user role
+          schema:
+            type: string
+            enum: [admin, team lead, student]
+        - name: department
+          in: query
+          description: Filter by department
+          schema:
+            type: string
+        - name: search
+          in: query
+          description: Search by name or email
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/User"
+                  pagination:
+                    $ref: "#/components/schemas/Pagination"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /users/{id}:
+    get:
+      summary: Get specific user
+      description: Retrieve detailed information about a specific user
+      tags:
+        - Users
+      parameters:
+        - $ref: "#/components/parameters/UserId"
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  # Courses
+  /courses:
+    get:
+      summary: List all courses
+      description: Retrieve a paginated list of all available courses with provider information
+      tags:
+        - Courses
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Sort"
+        - name: level
+          in: query
+          description: Filter by course level
+          schema:
+            type: string
+            enum: [A1, A2, B1, B2, C1, C2]
+        - name: status
+          in: query
+          description: Filter by course status
+          schema:
+            type: string
+            enum: [active, archived]
+        - name: difficulty
+          in: query
+          description: Filter by difficulty level
+          schema:
+            type: string
+            enum:
+              [beginner, elementary, intermediate, upper_intermediate, advanced]
+        - name: search
+          in: query
+          description: Search by title or description
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CourseListResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /courses/{id}:
+    get:
+      summary: Get specific course
+      description: Retrieve detailed information about a specific course with provider information
+      tags:
+        - Courses
+      parameters:
+        - $ref: "#/components/parameters/CourseId"
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CourseDetailResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  # Progress
+  /progress:
+    get:
+      summary: List all progress records
+      description: Retrieve a paginated list of all progress records
+      tags:
+        - Progress
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Sort"
+        - name: userId
+          in: query
+          description: Filter by user ID
+          schema:
+            type: string
+        - name: courseId
+          in: query
+          description: Filter by course ID
+          schema:
+            type: string
+        - name: status
+          in: query
+          description: Filter by progress status
+          schema:
+            type: string
+            enum: [in-progress, completed]
+        - name: completionStatus
+          in: query
+          description: Filter by completion status
+          schema:
+            type: string
+            enum: [pass, fail]
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Progress"
+                  pagination:
+                    $ref: "#/components/schemas/Pagination"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /progress/{id}:
+    get:
+      summary: Get specific progress record
+      description: Retrieve detailed information about a specific progress record
+      tags:
+        - Progress
+      parameters:
+        - $ref: "#/components/parameters/ProgressId"
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Progress"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /users/{id}/progress:
+    get:
+      summary: Get user progress
+      description: |
+        Retrieve all progress records for a specific user with user context.
+
+        **Version 0.3.0 Changes:**
+        - Response now includes user information at the top level
+        - Progress records no longer contain redundant userId field
+        - Reduced payload size and improved semantic clarity
+      tags:
+        - Progress
+      parameters:
+        - $ref: "#/components/parameters/UserId"
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Sort"
+        - name: status
+          in: query
+          description: Filter by progress status
+          schema:
+            type: string
+            enum: [in-progress, completed]
+        - name: completionStatus
+          in: query
+          description: Filter by completion status
+          schema:
+            type: string
+            enum: [pass, fail]
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProgressResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  # Utilities
+  /utilities/health:
+    get:
+      summary: API health check
+      description: Check the health status of the API
+      tags:
+        - Utilities
+      security: []
+      responses:
+        "200":
+          description: API is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [healthy]
+                    example: "healthy"
+                  timestamp:
+                    type: string
+                    format: date-time
+                    example: "2025-01-20T21:01:58Z"
+                  version:
+                    type: string
+                    example: "0.3.0"
+                  uptime:
+                    type: integer
+                    description: API uptime in seconds
+                    example: 86400
+        "503":
+          description: API is unhealthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [unhealthy]
+                    example: "unhealthy"
+                  timestamp:
+                    type: string
+                    format: date-time
+                    example: "2025-01-20T21:01:58Z"
+                  errors:
+                    type: array
+                    items:
+                      type: string
+                    example:
+                      ["Database connection failed", "External service timeout"]
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from /auth/token endpoint
+
+  parameters:
+    Page:
+      name: page
+      in: query
+      description: Page number for pagination
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+        example: 1
+
+    Limit:
+      name: limit
+      in: query
+      description: Number of items per page
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 25
+        example: 25
+
+    Sort:
+      name: sort
+      in: query
+      description: Sort order (field:direction)
+      schema:
+        type: string
+        example: "createdAt:desc"
+
+    UserId:
+      name: id
+      in: path
+      required: true
+      description: User identifier (UUID)
+      schema:
+        type: string
+        format: uuid
+        example: "f1e2d3c4-b5a6-4c7d-8e9f-0a1b2c3d4e5f"
+
+    CourseId:
+      name: id
+      in: path
+      required: true
+      description: Course identifier
+      schema:
+        type: string
+        example: "pack_level_en_a1"
+
+    ProgressId:
+      name: id
+      in: path
+      required: true
+      description: Progress record identifier (UUID)
+      schema:
+        type: string
+        format: uuid
+        example: "b2469a11-b5a6-4c7d-8e9f-0a1b2c3d4e5f"
+
+  schemas:
+    # Response Schemas
+    CourseListResponse:
+      type: object
+      required:
+        - provider
+        - courses
+        - pagination
+      properties:
+        provider:
+          $ref: "#/components/schemas/Provider"
+        courses:
+          type: array
+          items:
+            $ref: "#/components/schemas/Course"
+        pagination:
+          $ref: "#/components/schemas/Pagination"
+
+    CourseDetailResponse:
+      type: object
+      required:
+        - provider
+        - course
+      properties:
+        provider:
+          $ref: "#/components/schemas/Provider"
+        course:
+          $ref: "#/components/schemas/Course"
+
+    UserProgressResponse:
+      type: object
+      required:
+        - user
+        - progress
+        - pagination
+      properties:
+        user:
+          $ref: "#/components/schemas/UserContext"
+        progress:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProgressWithoutUserId"
+        pagination:
+          $ref: "#/components/schemas/Pagination"
+
+    UserContext:
+      type: object
+      description: Lightweight user identification context for progress responses
+      required:
+        - id
+        - userId
+        - email
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique user identifier
+          example: "a2b3c4d5-e6f7-4a8b-9c0d-1e2f3a4b5c6d"
+        userId:
+          type: string
+          format: uuid
+          description: User UUID identifier
+          example: "f1e2d3c4-b5a6-4c7d-8e9f-0a1b2c3d4e5f"
+        email:
+          type: string
+          format: email
+          description: User's email address
+          example: "john.doe@example.com"
+
+    # Core Schemas
+    User:
+      type: object
+      required:
+        - id
+        - userId
+        - institutionId
+        - status
+        - role
+        - email
+        - firstName
+        - lastName
+        - department
+        - countryCode
+        - employeeId
+        - team
+        - createdAt
+        - updatedAt
+        - expireDate
+        - lastActive
+        - deletedDate
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique user identifier
+          example: "f1e2d3c4-b5a6-4c7d-8e9f-0a1b2c3d4e5f"
+        userId:
+          type: string
+          format: uuid
+          description: User UUID identifier
+          example: "a2b3c4d5-e6f7-4a8b-9c0d-1e2f3a4b5c6d"
+        institutionId:
+          type: string
+          format: uuid
+          description: Institution identifier (UUID)
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        status:
+          type: string
+          enum: [active, removed]
+          description: User account status
+          example: "active"
+        role:
+          type: string
+          enum: [admin, team lead, student]
+          description: User's role/permission level
+          example: "admin"
+        email:
+          type: string
+          format: email
+          description: User's email address
+          example: "john.doe@example.com"
+        firstName:
+          type: string
+          description: User's first name
+          example: "John"
+          nullable: true
+        lastName:
+          type: string
+          description: User's last name
+          example: "Doe"
+          nullable: true
+        department:
+          type: string
+          description: User's department within the institution
+          example: "Accounts"
+          nullable: true
+        countryCode:
+          type: string
+          description: ISO country code
+          example: "FR"
+          nullable: true
+        employeeId:
+          type: string
+          description: Employee identifier within the institution
+          example: "empId12345678"
+          nullable: true
+        team:
+          type: string
+          description: User's team assignment
+          example: "A-team"
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+          description: User creation timestamp
+          example: "2025-01-20T21:01:58Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: Last update timestamp
+          example: "2025-01-20T21:01:58Z"
+        expireDate:
+          type: string
+          format: date-time
+          description: Account expiration timestamp
+          example: "2025-01-20T21:01:58Z"
+        lastActive:
+          type: string
+          format: date-time
+          description: Last activity timestamp
+          example: "2025-01-20T21:01:58Z"
+        deletedDate:
+          type: string
+          format: date-time
+          description: Account deletion timestamp
+          example: "2025-01-20T21:01:58Z"
+          nullable: true
+
+    Course:
+      type: object
+      required:
+        - id
+        - title
+        - description
+        - level
+        - difficulty
+        - launchUrl
+        - duration
+        - language
+        - thumbnailUrl
+        - status
+        - publishedAt
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          description: Unique course identifier
+          example: "pack_level_en_a1"
+        title:
+          type: string
+          description: Course title
+          example: "English A1 - Beginner"
+        description:
+          type: string
+          description: Course description
+          example: "Complete beginner course for English language learning"
+        level:
+          type: string
+          enum: [A1, A2, B1, B2, C1, C2]
+          description: CEFR language level
+          example: "A1"
+        difficulty:
+          type: object
+          required:
+            - value
+            - label
+            - order
+          properties:
+            value:
+              type: string
+              enum:
+                [
+                  beginner,
+                  elementary,
+                  intermediate,
+                  upper_intermediate,
+                  advanced,
+                ]
+              description: Difficulty level value
+              example: "beginner"
+            label:
+              type: string
+              description: Human-readable difficulty level
+              example: "Beginner"
+            order:
+              type: integer
+              minimum: 1
+              maximum: 5
+              description: Difficulty order (1-5)
+              example: 1
+        launchUrl:
+          type: string
+          format: uri
+          description: SSO URL to launch the course with templated institution and course IDs
+          example: "https://sso.busuu.com/saml/{{institutionId}}/login?course={{courseId}}"
+        duration:
+          type: integer
+          minimum: 0
+          description: Course duration in minutes
+          example: 1110
+        language:
+          type: string
+          description: Language being learned
+          example: "English"
+        thumbnailUrl:
+          type: string
+          format: uri
+          description: Course thumbnail image URL
+          example: "https://cdn.busuu.com/courses/en-a1-thumbnail.jpg"
+        status:
+          type: string
+          enum: [active, archived]
+          description: Course status
+          example: "active"
+        publishedAt:
+          type: string
+          format: date-time
+          description: Course publication timestamp
+          example: "2025-01-20T21:01:58Z"
+        createdAt:
+          type: string
+          format: date-time
+          description: Course creation timestamp
+          example: "2025-01-20T21:01:58Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: Last update timestamp
+          example: "2025-01-20T21:01:58Z"
+
+    Provider:
+      type: object
+      required:
+        - id
+        - name
+        - description
+        - logoUrl
+      properties:
+        id:
+          type: string
+          description: Provider identifier
+          example: "busuu"
+        name:
+          type: string
+          description: Provider name
+          example: "Busuu"
+        description:
+          type: string
+          description: Provider description
+          example: "Language learning platform"
+        logoUrl:
+          type: string
+          format: uri
+          description: Provider logo image URL
+          example: "https://path/to/logo.jpg"
+
+    Progress:
+      type: object
+      required:
+        - id
+        - userId
+        - courseId
+        - status
+        - progressPercentage
+        - lessonsCompleted
+        - totalLessons
+        - startedAt
+        - lastAccessedAt
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique progress record identifier
+          example: "2ed43c78-b5a6-4c7d-8e9f-0a1b2c3d4e5f"
+        userId:
+          type: string
+          format: uuid
+          description: User identifier
+          example: "f1e2d3c4-b5a6-4c7d-8e9f-0a1b2c3d4e5f"
+        courseId:
+          type: string
+          description: Course identifier
+          example: "pack_level_en_a1"
+        status:
+          type: string
+          enum: [in-progress, completed]
+          description: Progress status
+          example: "in-progress"
+        progressPercentage:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: Progress percentage (0-100)
+          example: 100
+        lessonsCompleted:
+          type: integer
+          minimum: 0
+          description: Number of lessons completed
+          example: 20
+        totalLessons:
+          type: integer
+          minimum: 0
+          description: Total number of lessons in course
+          example: 20
+        completionStatus:
+          type: string
+          enum: [pass, fail]
+          description: Completion status (only when status is completed)
+          example: "pass"
+          nullable: true
+        completionScore:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: Completion score percentage
+          example: 85
+          nullable: true
+        learningDuration:
+          type: integer
+          minimum: 0
+          description: >
+            Total learning time in minutes.
+            - Initialized to 0 when progress record is created
+            - Populated with course.duration when status becomes 'completed'
+            - Behavior during 'in-progress' is implementation-dependent (may remain 0 or increment)
+            This field represents the standard course duration once completed,
+            not necessarily the actual time the user spent learning.
+          example: 1110
+        startedAt:
+          type: string
+          format: date-time
+          description: When user started the course
+          example: "2025-01-15T10:00:00Z"
+        completedAt:
+          type: string
+          format: date-time
+          description: When course was completed (null if not completed)
+          example: "2025-01-20T15:30:00Z"
+          nullable: true
+        lastAccessedAt:
+          type: string
+          format: date-time
+          description: Last activity timestamp
+          example: "2025-01-20T21:01:58Z"
+        createdAt:
+          type: string
+          format: date-time
+          description: Progress record creation timestamp
+          example: "2025-01-15T10:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: Last update timestamp
+          example: "2025-01-20T21:01:58Z"
+
+    ProgressWithoutUserId:
+      type: object
+      description: Progress record without userId field (used in user-specific progress responses where user context is provided separately)
+      required:
+        - id
+        - courseId
+        - status
+        - progressPercentage
+        - lessonsCompleted
+        - totalLessons
+        - startedAt
+        - lastAccessedAt
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique progress record identifier
+          example: "2ed43c78-b5a6-4c7d-8e9f-0a1b2c3d4e5f"
+        courseId:
+          type: string
+          description: Course identifier
+          example: "pack_level_en_a1"
+        status:
+          type: string
+          enum: [in-progress, completed]
+          description: Progress status
+          example: "in-progress"
+        progressPercentage:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: Progress percentage (0-100)
+          example: 100
+        lessonsCompleted:
+          type: integer
+          minimum: 0
+          description: Number of lessons completed
+          example: 20
+        totalLessons:
+          type: integer
+          minimum: 0
+          description: Total number of lessons in course
+          example: 20
+        completionStatus:
+          type: string
+          enum: [pass, fail]
+          description: Completion status (only when status is completed)
+          example: "pass"
+          nullable: true
+        completionScore:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: Completion score percentage
+          example: 100
+          nullable: true
+        learningDuration:
+          type: integer
+          minimum: 0
+          description: >
+            Total learning time in minutes.
+            - Initialized to 0 when progress record is created
+            - Populated with course.duration when status becomes 'completed'
+            - Behavior during 'in-progress' is implementation-dependent (may remain 0 or increment)
+            This field represents the standard course duration once completed,
+            not necessarily the actual time the user spent learning.
+          example: 1110
+        startedAt:
+          type: string
+          format: date-time
+          description: When user started the course
+          example: "2025-01-15T10:00:00Z"
+        completedAt:
+          type: string
+          format: date-time
+          description: When course was completed (null if not completed)
+          example: "2025-01-20T15:30:00Z"
+          nullable: true
+        lastAccessedAt:
+          type: string
+          format: date-time
+          description: Last activity timestamp
+          example: "2025-01-20T21:01:58Z"
+        createdAt:
+          type: string
+          format: date-time
+          description: Progress record creation timestamp
+          example: "2025-01-15T10:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: Last update timestamp
+          example: "2025-01-20T21:01:58Z"
+
+    Pagination:
+      type: object
+      required:
+        - page
+        - limit
+        - total
+        - totalPages
+      properties:
+        page:
+          type: integer
+          minimum: 1
+          description: Current page number
+          example: 1
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 100
+          description: Items per page
+          example: 25
+        total:
+          type: integer
+          minimum: 0
+          description: Total number of items
+          example: 150
+        totalPages:
+          type: integer
+          minimum: 0
+          description: Total number of pages
+          example: 6
+        hasNext:
+          type: boolean
+          description: Whether there is a next page
+          example: true
+        hasPrevious:
+          type: boolean
+          description: Whether there is a previous page
+          example: false
+
+    Error:
+      type: object
+      required:
+        - code
+        - message
+        - timestamp
+      properties:
+        code:
+          type: string
+          description: Error code
+          example: "VALIDATION_ERROR"
+        message:
+          type: string
+          description: Human-readable error message
+          example: "Invalid request parameters"
+        details:
+          type: object
+          description: Additional error details
+          additionalProperties: true
+        timestamp:
+          type: string
+          format: date-time
+          description: Error timestamp
+          example: "2025-01-20T21:01:58Z"
+        requestId:
+          type: string
+          format: uuid
+          description: Unique request identifier for debugging (UUID)
+          example: "a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d"
+
+  responses:
+    BadRequest:
+      description: Bad request - invalid parameters or malformed request
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            code: "VALIDATION_ERROR"
+            message: "Invalid request parameters"
+            details:
+              field: "page"
+              reason: "Must be a positive integer"
+            timestamp: "2025-01-20T21:01:58Z"
+            requestId: "a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d"
+
+    Unauthorized:
+      description: Unauthorized - invalid or missing authentication
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            code: "UNAUTHORIZED"
+            message: "Invalid or expired access token"
+            timestamp: "2025-01-20T21:01:58Z"
+            requestId: "a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d"
+
+    Forbidden:
+      description: Forbidden - insufficient permissions
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            code: "FORBIDDEN"
+            message: "Insufficient permissions to access this resource"
+            timestamp: "2025-01-20T21:01:58Z"
+            requestId: "a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d"
+
+    NotFound:
+      description: Not found - resource does not exist
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            code: "NOT_FOUND"
+            message: "Resource not found"
+            timestamp: "2025-01-20T21:01:58Z"
+            requestId: "a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d"
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            code: "INTERNAL_ERROR"
+            message: "An unexpected error occurred"
+            timestamp: "2025-01-20T21:01:58Z"
+            requestId: "a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d"
+
+tags:
+  - name: Authentication
+    description: API authentication and token management
+  - name: Users
+    description: Enhanced user information and management
+  - name: Courses
+    description: Optimized course catalog with provider-level metadata
+  - name: Progress
+    description: Aligned learning progress tracking
+  - name: Utilities
+    description: System utilities and health checks

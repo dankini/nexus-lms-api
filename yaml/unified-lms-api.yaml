@@ -1,0 +1,1164 @@
+openapi: 3.0.0
+info:
+  title: Unified LMS Service and API
+  description: Unified LMS Service and API
+  version: '1.0'
+  contact: {}
+tags: []
+servers:
+  - url: https://lms-api.busuu.com
+    description: Production
+  - url: https://unified-lms-service.k8s.eu-west-1.non-prod.busuu.net
+    description: Staging
+  - url: http://localhost:3000
+    description: Development
+paths:
+  /health:
+    get:
+      operationId: HealthController_healthCheck
+      parameters: []
+      responses:
+        '200':
+          description: ''
+      tags:
+        - Health
+  /v1/admin/institutions/{institutionId}/course-configurations:
+    get:
+      operationId: AdminInstitutionCourseConfigurationsController_getInstitutionCourseConfigurations
+      summary: Get course configurations for an institution
+      description: Returns the course configurations for an institution
+      tags:
+        - Admin
+      parameters:
+        - name: institutionId
+          required: true
+          in: path
+          schema:
+            description: ID of the institution
+            type: string
+            format: uuid
+            minLength: 1
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                description: Returned when the course configurations are successfully retrieved for the specified institution
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                  institution_id:
+                    type: string
+                    format: uuid
+                  course_ids:
+                    type: string
+                  created_at: {}
+                  updated_at: {}
+                  deleted_at:
+                    oneOf:
+                      - {}
+                      - {}
+                required:
+                  - id
+                  - institution_id
+                  - course_ids
+                  - created_at
+                  - updated_at
+                  - deleted_at
+        '400':
+          description: ''
+          content:
+            application/json:
+              schema:
+                description: Returned when validation fails
+                type: object
+                properties:
+                  status_code:
+                    type: number
+                    default: 400
+                  message:
+                    type: array
+                    items:
+                      type: string
+                  error:
+                    type: string
+                    default: Bad Request
+                required:
+                  - message
+        '404':
+          description: ''
+          content:
+            application/json:
+              schema:
+                description: Returned when validation fails
+                type: object
+                properties:
+                  status_code:
+                    type: number
+                    default: 400
+                  message:
+                    type: array
+                    items:
+                      type: string
+                  error:
+                    type: string
+                    default: Bad Request
+                required:
+                  - message
+    post:
+      operationId: AdminInstitutionCourseConfigurationsController_createInstitutionCourseConfigurations
+      summary: Create course configurations for an institution
+      description: Creates or updates the course configurations for an institution
+      tags:
+        - Admin
+      parameters:
+        - name: institutionId
+          required: true
+          in: path
+          schema:
+            description: ID of the institution
+            type: string
+            format: uuid
+            minLength: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              description: Request body for creating institution course configuration
+              type: object
+              properties:
+                course_ids:
+                  description: Array of course IDs the institution is interested in
+                  type: array
+                  minItems: 1
+                  items:
+                    type: string
+                    minLength: 1
+              required:
+                - course_ids
+      responses:
+        '201':
+          description: ''
+          content:
+            application/json:
+              schema:
+                description: Returned when the course configurations are successfully retrieved for the specified institution
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                  institution_id:
+                    type: string
+                    format: uuid
+                  course_ids:
+                    type: string
+                  created_at: {}
+                  updated_at: {}
+                  deleted_at:
+                    oneOf:
+                      - {}
+                      - {}
+                required:
+                  - id
+                  - institution_id
+                  - course_ids
+                  - created_at
+                  - updated_at
+                  - deleted_at
+        '400':
+          description: ''
+          content:
+            application/json:
+              schema:
+                description: Returned when validation fails
+                type: object
+                properties:
+                  status_code:
+                    type: number
+                    default: 400
+                  message:
+                    type: array
+                    items:
+                      type: string
+                  error:
+                    type: string
+                    default: Bad Request
+                required:
+                  - message
+        '409':
+          description: ''
+          content:
+            application/json:
+              schema:
+                description: Returned when validation fails
+                type: object
+                properties:
+                  status_code:
+                    type: number
+                    default: 400
+                  message:
+                    type: array
+                    items:
+                      type: string
+                  error:
+                    type: string
+                    default: Bad Request
+                required:
+                  - message
+    patch:
+      operationId: AdminInstitutionCourseConfigurationsController_updateInstitutionCourseConfigurations
+      summary: Update course configurations for an institution
+      description: Updates the course configurations for an institution
+      tags:
+        - Admin
+      parameters:
+        - name: institutionId
+          required: true
+          in: path
+          schema:
+            description: ID of the institution
+            type: string
+            format: uuid
+            minLength: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              description: Request body for creating institution course configuration
+              type: object
+              properties:
+                course_ids:
+                  description: Array of course IDs the institution is interested in
+                  type: array
+                  minItems: 1
+                  items:
+                    type: string
+                    minLength: 1
+              required:
+                - course_ids
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                description: Returned when the course configurations are successfully retrieved for the specified institution
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                  institution_id:
+                    type: string
+                    format: uuid
+                  course_ids:
+                    type: string
+                  created_at: {}
+                  updated_at: {}
+                  deleted_at:
+                    oneOf:
+                      - {}
+                      - {}
+                required:
+                  - id
+                  - institution_id
+                  - course_ids
+                  - created_at
+                  - updated_at
+                  - deleted_at
+        '400':
+          description: ''
+          content:
+            application/json:
+              schema:
+                description: Returned when validation fails
+                type: object
+                properties:
+                  status_code:
+                    type: number
+                    default: 400
+                  message:
+                    type: array
+                    items:
+                      type: string
+                  error:
+                    type: string
+                    default: Bad Request
+                required:
+                  - message
+        '404':
+          description: ''
+          content:
+            application/json:
+              schema:
+                description: Returned when validation fails
+                type: object
+                properties:
+                  status_code:
+                    type: number
+                    default: 400
+                  message:
+                    type: array
+                    items:
+                      type: string
+                  error:
+                    type: string
+                    default: Bad Request
+                required:
+                  - message
+    delete:
+      operationId: AdminInstitutionCourseConfigurationsController_deleteInstitutionCourseConfigurations
+      summary: Delete course configurations for an institution
+      description: Soft deletes the course configurations for an institution
+      tags:
+        - Admin
+      parameters:
+        - name: institutionId
+          required: true
+          in: path
+          schema:
+            description: ID of the institution
+            type: string
+            format: uuid
+            minLength: 1
+      responses:
+        '204':
+          description: Course configuration successfully deleted
+        '400':
+          description: ''
+          content:
+            application/json:
+              schema:
+                description: Returned when validation fails
+                type: object
+                properties:
+                  status_code:
+                    type: number
+                    default: 400
+                  message:
+                    type: array
+                    items:
+                      type: string
+                  error:
+                    type: string
+                    default: Bad Request
+                required:
+                  - message
+        '404':
+          description: ''
+          content:
+            application/json:
+              schema:
+                description: Returned when validation fails
+                type: object
+                properties:
+                  status_code:
+                    type: number
+                    default: 400
+                  message:
+                    type: array
+                    items:
+                      type: string
+                  error:
+                    type: string
+                    default: Bad Request
+                required:
+                  - message
+  /v1/admin/oauth/clients/{clientId}:
+    get:
+      operationId: AdminOauthClientsController_getOauthClient
+      summary: Get OAuth client
+      description: Returns the OAuth client
+      tags:
+        - Admin
+      parameters:
+        - name: clientId
+          required: true
+          in: path
+          schema:
+            description: Client ID
+            type: string
+            minLength: 1
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                description: Returned when the OAuth client is successfully retrieved for the specified client ID
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                  client_id:
+                    type: string
+                  client_secret_hash:
+                    type: string
+                  client_name:
+                    type: string
+                  scopes:
+                    type: array
+                    items:
+                      type: string
+                  is_active:
+                    type: boolean
+                  institution_id:
+                    type: string
+                    format: uuid
+                    nullable: true
+                  created_at: {}
+                  updated_at: {}
+                  last_used_at:
+                    oneOf:
+                      - {}
+                      - {}
+                required:
+                  - id
+                  - client_id
+                  - client_secret_hash
+                  - client_name
+                  - scopes
+                  - is_active
+                  - institution_id
+                  - created_at
+                  - updated_at
+                  - last_used_at
+        '400':
+          description: ''
+          content:
+            application/json:
+              schema:
+                description: Returned when validation fails
+                type: object
+                properties:
+                  status_code:
+                    type: number
+                    default: 400
+                  message:
+                    type: array
+                    items:
+                      type: string
+                  error:
+                    type: string
+                    default: Bad Request
+                required:
+                  - message
+        '404':
+          description: ''
+          content:
+            application/json:
+              schema:
+                description: Returned when validation fails
+                type: object
+                properties:
+                  status_code:
+                    type: number
+                    default: 400
+                  message:
+                    type: array
+                    items:
+                      type: string
+                  error:
+                    type: string
+                    default: Bad Request
+                required:
+                  - message
+    post:
+      operationId: AdminOauthClientsController_createOauthClient
+      summary: Create OAuth client
+      description: Creates the OAuth client
+      tags:
+        - Admin
+      parameters:
+        - name: clientId
+          required: true
+          in: path
+          schema:
+            description: Client ID
+            type: string
+            minLength: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              description: Request body for creating OAuth client
+              type: object
+              properties:
+                client_secret:
+                  type: string
+                  minLength: 1
+                client_name:
+                  type: string
+                  minLength: 1
+                scopes:
+                  type: array
+                  minItems: 1
+                  items:
+                    type: string
+                    enum:
+                      - courses:read
+                    x-enumNames:
+                      - COURSES_READ
+                institution_id:
+                  type: string
+                  format: uuid
+              required:
+                - client_secret
+                - client_name
+                - scopes
+      responses:
+        '201':
+          description: ''
+          content:
+            application/json:
+              schema:
+                description: Returned when the OAuth client is successfully retrieved for the specified client ID
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                  client_id:
+                    type: string
+                  client_secret_hash:
+                    type: string
+                  client_name:
+                    type: string
+                  scopes:
+                    type: array
+                    items:
+                      type: string
+                  is_active:
+                    type: boolean
+                  institution_id:
+                    type: string
+                    format: uuid
+                    nullable: true
+                  created_at: {}
+                  updated_at: {}
+                  last_used_at:
+                    oneOf:
+                      - {}
+                      - {}
+                required:
+                  - id
+                  - client_id
+                  - client_secret_hash
+                  - client_name
+                  - scopes
+                  - is_active
+                  - institution_id
+                  - created_at
+                  - updated_at
+                  - last_used_at
+        '400':
+          description: ''
+          content:
+            application/json:
+              schema:
+                description: Returned when validation fails
+                type: object
+                properties:
+                  status_code:
+                    type: number
+                    default: 400
+                  message:
+                    type: array
+                    items:
+                      type: string
+                  error:
+                    type: string
+                    default: Bad Request
+                required:
+                  - message
+    patch:
+      operationId: AdminOauthClientsController_updateOauthClient
+      summary: Update OAuth client
+      description: Updates the OAuth client
+      tags:
+        - Admin
+      parameters:
+        - name: clientId
+          required: true
+          in: path
+          schema:
+            description: Client ID
+            type: string
+            minLength: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              description: Request body for creating OAuth client
+              type: object
+              properties:
+                client_secret:
+                  type: string
+                  minLength: 1
+                client_name:
+                  type: string
+                  minLength: 1
+                scopes:
+                  type: array
+                  minItems: 1
+                  items:
+                    type: string
+                    enum:
+                      - courses:read
+                    x-enumNames:
+                      - COURSES_READ
+                institution_id:
+                  type: string
+                  format: uuid
+              required:
+                - client_secret
+                - client_name
+                - scopes
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                description: Returned when the OAuth client is successfully retrieved for the specified client ID
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                  client_id:
+                    type: string
+                  client_secret_hash:
+                    type: string
+                  client_name:
+                    type: string
+                  scopes:
+                    type: array
+                    items:
+                      type: string
+                  is_active:
+                    type: boolean
+                  institution_id:
+                    type: string
+                    format: uuid
+                    nullable: true
+                  created_at: {}
+                  updated_at: {}
+                  last_used_at:
+                    oneOf:
+                      - {}
+                      - {}
+                required:
+                  - id
+                  - client_id
+                  - client_secret_hash
+                  - client_name
+                  - scopes
+                  - is_active
+                  - institution_id
+                  - created_at
+                  - updated_at
+                  - last_used_at
+        '400':
+          description: ''
+          content:
+            application/json:
+              schema:
+                description: Returned when validation fails
+                type: object
+                properties:
+                  status_code:
+                    type: number
+                    default: 400
+                  message:
+                    type: array
+                    items:
+                      type: string
+                  error:
+                    type: string
+                    default: Bad Request
+                required:
+                  - message
+        '404':
+          description: ''
+          content:
+            application/json:
+              schema:
+                description: Returned when validation fails
+                type: object
+                properties:
+                  status_code:
+                    type: number
+                    default: 400
+                  message:
+                    type: array
+                    items:
+                      type: string
+                  error:
+                    type: string
+                    default: Bad Request
+                required:
+                  - message
+    delete:
+      operationId: AdminOauthClientsController_deleteOauthClient
+      summary: Delete OAuth client
+      description: Deletes the OAuth client
+      tags:
+        - Admin
+      parameters:
+        - name: clientId
+          required: true
+          in: path
+          schema:
+            type: string
+        - name: clientIdId
+          required: true
+          in: path
+          schema:
+            description: Client ID
+            type: string
+            minLength: 1
+      responses:
+        '204':
+          description: OAuth client successfully deleted
+        '400':
+          description: ''
+          content:
+            application/json:
+              schema:
+                description: Returned when validation fails
+                type: object
+                properties:
+                  status_code:
+                    type: number
+                    default: 400
+                  message:
+                    type: array
+                    items:
+                      type: string
+                  error:
+                    type: string
+                    default: Bad Request
+                required:
+                  - message
+        '404':
+          description: ''
+          content:
+            application/json:
+              schema:
+                description: Returned when validation fails
+                type: object
+                properties:
+                  status_code:
+                    type: number
+                    default: 400
+                  message:
+                    type: array
+                    items:
+                      type: string
+                  error:
+                    type: string
+                    default: Bad Request
+                required:
+                  - message
+  /v1/lms/{lmsName}/courses-overview:
+    get:
+      operationId: LmsController_getCoursesOverview
+      summary: Get courses overview for a client of a LMS
+      description: Returns the courses overview for a client of a LMS
+      tags:
+        - LMS
+      parameters:
+        - name: lmsName
+          required: true
+          in: path
+          schema:
+            description: Name of the LMS
+            type: string
+            enum:
+              - cornerstone
+            x-enumNames:
+              - CORNERSTONE
+        - name: ciid
+          required: true
+          in: query
+          description: CIID (Client ID) of the client of the LMS
+          schema:
+            minLength: 1
+            format: uuid
+            type: string
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                description: Returned when the courses overview is successfully retrieved for the specified LMS and client
+                type: array
+                items:
+                  oneOf:
+                    - type: object
+                      properties:
+                        ID:
+                          type: string
+                          maxLength: 49
+                        Title:
+                          type: string
+                          maxLength: 499
+                        URL:
+                          type: string
+                          format: uri
+                        IsActive:
+                          type: boolean
+                        Description:
+                          type: string
+                          maxLength: 4999
+                        Thumbnail:
+                          type: string
+                          format: uri
+                        Version:
+                          type: string
+                          maxLength: 49
+                        Owners:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              Name:
+                                type: string
+                            required:
+                              - Name
+                        LastModifiedUTC:
+                          type: string
+                          format: date-time
+                        Languages:
+                          type: array
+                          items:
+                            type: string
+                        Duration:
+                          description: Duration in the format HH:MM:SS
+                          type: string
+                          pattern: ^\d{2}:\d{2}:\d{2}$
+                        Subjects:
+                          type: array
+                          items:
+                            type: string
+                        Keywords:
+                          type: string
+                          maxLength: 999
+                        IsMobile:
+                          type: boolean
+                        CertificationPointUnitOfMeasure:
+                          type: string
+                        PublicationDate:
+                          type: string
+                          format: date-time
+                        Localization:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              Language:
+                                type: string
+                              Title:
+                                type: string
+                              AccreditationBody:
+                                type: string
+                              CertificationPointUnitOfMeasure:
+                                type: string
+                              Description:
+                                type: string
+                              Keywords:
+                                type: string
+                            required:
+                              - Language
+                              - Title
+                              - Description
+                        Modalities:
+                          type: array
+                          items:
+                            type: string
+                      required:
+                        - ID
+                        - Title
+                        - URL
+                        - IsActive
+                        - Description
+                        - LastModifiedUTC
+                        - IsMobile
+                    - {}
+        '304':
+          description: ''
+          content:
+            application/json:
+              schema:
+                description: Returned when the courses overview is successfully retrieved for the specified LMS and client
+                type: array
+                items:
+                  oneOf:
+                    - type: object
+                      properties:
+                        ID:
+                          type: string
+                          maxLength: 49
+                        Title:
+                          type: string
+                          maxLength: 499
+                        URL:
+                          type: string
+                          format: uri
+                        IsActive:
+                          type: boolean
+                        Description:
+                          type: string
+                          maxLength: 4999
+                        Thumbnail:
+                          type: string
+                          format: uri
+                        Version:
+                          type: string
+                          maxLength: 49
+                        Owners:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              Name:
+                                type: string
+                            required:
+                              - Name
+                        LastModifiedUTC:
+                          type: string
+                          format: date-time
+                        Languages:
+                          type: array
+                          items:
+                            type: string
+                        Duration:
+                          description: Duration in the format HH:MM:SS
+                          type: string
+                          pattern: ^\d{2}:\d{2}:\d{2}$
+                        Subjects:
+                          type: array
+                          items:
+                            type: string
+                        Keywords:
+                          type: string
+                          maxLength: 999
+                        IsMobile:
+                          type: boolean
+                        CertificationPointUnitOfMeasure:
+                          type: string
+                        PublicationDate:
+                          type: string
+                          format: date-time
+                        Localization:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              Language:
+                                type: string
+                              Title:
+                                type: string
+                              AccreditationBody:
+                                type: string
+                              CertificationPointUnitOfMeasure:
+                                type: string
+                              Description:
+                                type: string
+                              Keywords:
+                                type: string
+                            required:
+                              - Language
+                              - Title
+                              - Description
+                        Modalities:
+                          type: array
+                          items:
+                            type: string
+                      required:
+                        - ID
+                        - Title
+                        - URL
+                        - IsActive
+                        - Description
+                        - LastModifiedUTC
+                        - IsMobile
+                    - {}
+        '400':
+          description: ''
+          content:
+            application/json:
+              schema:
+                description: Returned when validation fails
+                type: object
+                properties:
+                  status_code:
+                    type: number
+                    default: 400
+                  message:
+                    type: array
+                    items:
+                      type: string
+                  error:
+                    type: string
+                    default: Bad Request
+                required:
+                  - message
+        '404':
+          description: ''
+          content:
+            application/json:
+              schema:
+                description: Returned when validation fails
+                type: object
+                properties:
+                  status_code:
+                    type: number
+                    default: 400
+                  message:
+                    type: array
+                    items:
+                      type: string
+                  error:
+                    type: string
+                    default: Bad Request
+                required:
+                  - message
+      security:
+        - JWT-auth: []
+  /v1/oauth/token:
+    post:
+      operationId: OAuthController_issueToken
+      summary: Get OAuth2 access token
+      description: Returns an access token and refresh token using client credentials flow
+      parameters:
+        - name: authorization
+          required: true
+          in: header
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                grant_type:
+                  type: string
+                  enum:
+                    - client_credentials
+                client_id:
+                  type: string
+                  minLength: 1
+                  maxLength: 64
+                client_secret:
+                  type: string
+                  minLength: 1
+                  maxLength: 64
+                scope:
+                  oneOf:
+                    - type: array
+                      items:
+                        type: string
+                        enum:
+                          - courses:read
+                        x-enumNames:
+                          - COURSES_READ
+                    - type: string
+              required:
+                - grant_type
+                - scope
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token:
+                    type: string
+                  token_type:
+                    type: string
+                    enum:
+                      - Bearer
+                  expires_in:
+                    type: number
+                  refresh_token:
+                    type: string
+                required:
+                  - access_token
+                  - token_type
+                  - expires_in
+        '400':
+          description: Invalid request
+        '401':
+          description: Invalid client credentials
+      tags:
+        - OAuth
+  /v1/oauth/refresh:
+    post:
+      operationId: OAuthController_refreshToken
+      summary: Refresh access token
+      description: Returns a new access token and refresh token using a valid refresh token
+      parameters: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                refresh_token:
+                  type: string
+                  minLength: 1
+              required:
+                - refresh_token
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token:
+                    type: string
+                  token_type:
+                    type: string
+                    enum:
+                      - Bearer
+                  expires_in:
+                    type: number
+                  refresh_token:
+                    type: string
+                required:
+                  - access_token
+                  - token_type
+                  - expires_in
+        '401':
+          description: Invalid or expired refresh token
+      tags:
+        - OAuth
+components:
+  securitySchemes:
+    JWT-auth:
+      scheme: bearer
+      bearerFormat: JWT
+      type: http
+      name: JWT
+      description: Enter JWT token
+      in: header
+  schemas: {}
