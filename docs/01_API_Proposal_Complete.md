@@ -618,7 +618,7 @@ The following summary outlines the recommended Nexus Core API fields based on pl
 | **Identifiers** |
 | Course Identifier | Unique ID of the course. Our own Level IDs. | string `"levelId": "pack_level_en_b1"` | **5/5 ✅ Universal** 360L, Degreed, Cornerstone, SF, Workday | **Simple** Name only mapping **Platform Mappings:** 360L v2: `externalId` (nested in `courseIdentifier.value`) Degreed: `external-id` Cornerstone: `ID` SuccessFactors: `courseID` Workday: `Course Number` | As you can see below, we have inconsistent course naming conventions. e.g. `pack_level_en_a1` `pack_level_en_complete_c1` `70646b78-e70c-4314-85c0-c5d96e250917` `pack_level_en_fashionretail` |
 | Provider Identifier | Unique ID of the external provider. | string `"providerID": "Busuu Premium Language Learning"` | **3/5 🤔 Optional** **Decision:** ✅ **SHOULD include** 360L, SuccessFactors, Workday | **Architectural** Implementation varies **Platform Mappings:** • 360L v2: `integrationId` (from setup, architectural) Degreed: Inferred from OAuth (not explicit) Cornerstone: Not needed SuccessFactors: `providerID` Workday: `vendor_topic` | Fixed value in all transactions with LMSs who use it. We are free to choose the value. |
-| Provider Logo | The URL of the external platform's logo. | string (URL) `"externalPlatformLogoUrl": "https://path/to/logoImage.jpg"` | **1/5 ❌** 360L only _(Deprecated in v2)_ | N/A | **Exclude** Platform-specific quirk. Only 360Learning v1 used this, deprecated in v2 anyway. |
+| Provider Logo | The URL of the external platform's logo. | string (URL) `"externalPlatformLogoUrl": "https://path/to/logoImage.jpg"` | **1/5 ❌** 360L only _(Deprecated in v2)_ | N/A | **Exclude** Platform-specific quirk. Only 360Learning v1 used this, deprecated in v2 anyway. Handle in connectors. |
 | Group Identifier | Used to support internal hierarchies in 360 Learning. Also used to define ownership of course assets. | string `"externalGroup": "6516fb782166f3c6b67a54ea"` | **1/5 ❌** 360L only | N/A | **Exclude** Platform-specific. Useful 360L feature for hierarchies but only one platform. Handle in 360L connector. |
 | Asset Owner Identifier(s) | The identity of users, groups or orgnisations that own the content. | object (illustrative only) | **3/5 ⚠️** 360L, Degreed, Cornerstone | **Complex** Highly variable structures | **Exclude** Despite 3/5 coverage, implementations too different: • 360L: Single `authorId` string • Degreed: `owner-id` + `owner-type` • Cornerstone: Array of owner objects • SuccessFactors: Not available • Workday: Not available **Recommendation:** Handle in connectors where needed |
 | **Course Metadata - Core** |
@@ -1312,7 +1312,6 @@ It would be very surprising if they don't know about it. Maybe they are using it
 Does StackOne have any learning content providers as customers? (Not necessarily language providers)
 
 ---
-
 
 ### ⚠️ Reliance on Third-Party (Key Risks)
 #### Vendor Lock-In
