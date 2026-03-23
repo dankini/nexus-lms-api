@@ -741,7 +741,6 @@ paths:
         - Missing authentication (401): Request without valid Bearer token
 
         **Related Endpoints:**
-        - Get specific progress record: `GET /progress/{id}`
         - Get all progress for a user: `GET /users/{institutionUserId}/progress`
         - Get user details: `GET /users/{institutionUserId}`
         - Get course details: `GET /courses/{id}`
@@ -1033,7 +1032,6 @@ paths:
         - Missing authentication (401): Request without valid Bearer token
 
         **Related Endpoints:**
-        - Get specific live lesson: `GET /live-lessons/{id}`
         - Get all live lessons for a user (with summary): `GET /users/{institutionUserId}/live-lessons`
         - Get user details: `GET /users/{institutionUserId}`
       tags:
@@ -1210,7 +1208,6 @@ paths:
         - Get user details: `GET /users/{institutionUserId}`
         - List all users: `GET /users`
         - Alternative endpoint (includes institutionUserId in each record): `GET /live-lessons?institutionUserId={institutionUserId}`
-        - Get specific lesson details: `GET /live-lessons/{lessonId}` (use `id` from liveLessons array)
       tags:
         - Live Lessons
       parameters:
@@ -1365,7 +1362,6 @@ paths:
         - Missing authentication (401): Request without valid Bearer token
 
         **Related Endpoints:**
-        - Get specific certificate: `GET /certificates/{id}`
         - Get all certificates for a user (with summary): `GET /users/{institutionUserId}/certificates`
         - Get user details: `GET /users/{institutionUserId}`
         - Get course details: `GET /courses/{id}`
@@ -1567,7 +1563,6 @@ paths:
         - Get user details: `GET /users/{institutionUserId}`
         - List all users: `GET /users`
         - Alternative endpoint (includes institutionUserId in each record): `GET /certificates?institutionUserId={institutionUserId}`
-        - Get specific certificate details: `GET /certificates/{certificateId}` (use `id` from certificates array)
       tags:
         - Certificates
       parameters:
