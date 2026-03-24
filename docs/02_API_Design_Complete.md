@@ -43,26 +43,33 @@
 - [🗄️ 0.10.0 Refinement: Remove Detail Endpoints](#0100-refinement-remove-detail-endpoints)
   - [⚙️ v0.10.0 OpenAPI YAML Spec](#v0100-openapi-yaml-spec)
   - [🔗 v0.10.0 Swaggerhub Docs](#v0100-swaggerhub-docs)
+- [🧑‍🏫 0.11.0 Refinement: Live Lesson Lean and Detailed Paths](#0110-refinement-live-lesson-lean-and-detailed-paths)
+  - [⚙️ v0.11.0 OpenAPI YAML Spec](#v0110-openapi-yaml-spec)
+  - [🔗 v0.11.0 Swaggerhub Docs](#v0110-swaggerhub-docs)
 
 ---
 
-**Latest Version (v0.10.0) - January 7, 2026**
+**Latest Version (v0.11.0) - March 23, 2026**
 
-The API has been refined through ten design iterations, with the latest version removing unnecessary detail endpoints for transactional resources following YAGNI principles.
+The API has been refined through eleven design iterations. The latest version splits live-lesson read operations into parallel **lean** and **detailed** paths.
 
-All historical documentation (v0.1.0 - v0.9.0) references detail endpoints for progress, live lessons, and certificates which were removed in v0.10.0 for API simplification.
+**Lean** endpoints omit `type` and `level` where the upstream platform does not reliably capture them, and omit enriched aggregated `summary` on the user-scoped route.
 
-See [0.10.0 Refinement: Remove Detail Endpoints](https://busuucom.atlassian.net/wiki/spaces/BP/pages/7663353868) for details.
+**Detailed** endpoints retain illustrative `type` and `level`, enriched `summary` (totals for the full filtered result set), and matching query filters for product and capability discussion.
+
+All historical documentation (v0.1.0 - v0.9.0) still references detail endpoints for progress, live lessons, and certificates but these were removed in v0.10.0 for API simplification.
+
+See [0.11.0 Refinement: Live Lesson Lean and Detailed Paths](#0110-refinement-live-lesson-lean-and-detailed-paths) for details.
 
 ---
 
 ## Executive Summary
 
-This executive summary provides a comprehensive review of the folder, documenting the complete design phase evolution of the Busuu Nexus Core API from initial proposal through **ten design iterations** (v0.1.0 through v0.10.0). The design phase demonstrates exceptional iterative improvement, comprehensive technical specifications, and a production-ready OpenAPI 3.1 specification with inline examples.
+This executive summary provides a comprehensive review of the folder, documenting the complete design phase evolution of the Busuu Nexus Core API from initial proposal through **eleven design iterations** (v0.1.0 through v0.11.0). The design phase demonstrates exceptional iterative improvement, comprehensive technical specifications, and a production-ready OpenAPI 3.1 specification with inline examples.
 
 **Design Phase Assessment: 9.5/10** ⭐⭐⭐⭐⭐
 
-**Design Phase Status:** ✅ **COMPLETE** - The design phase has successfully delivered a comprehensive, production-ready API specification. All **ten design iterations** are complete with full OpenAPI 3.1 specification, detailed data models, and comprehensive documentation. The specification is ready to transition to the implementation phase.
+**Design Phase Status:** ✅ **COMPLETE** - The design phase has successfully delivered a comprehensive, production-ready API specification. All **eleven design iterations** are complete with full OpenAPI 3.1 specification, detailed data models, and comprehensive documentation. The specification is ready to transition to the implementation phase.
 
 **Readiness: 90%** - Strong technical foundation, comprehensive specifications with enhanced documentation, ready for implementation with minor refinements.
 
@@ -73,7 +80,7 @@ This executive summary provides a comprehensive review of the folder, documentin
 ### Main Components:
 
 * **Parent Page:** API Design - Summary for all design documentation
-* **8 Major Sections:**
+* **9 Major Sections:**
 
     * **1. Increment: LMS Endpoints (MVP)** - Core LMS integration endpoints (Users, Courses, Progress)
     * **2. Increment: Add Live Lesson Endpoints** - Live lesson tracking capabilities
@@ -83,8 +90,9 @@ This executive summary provides a comprehensive review of the folder, documentin
     * **6. Refinement: Refactor user ID fields**
     * **7. Refinement: Schema Quality Improvements**
     * **8. Refinement: Remove Detail Endpoints**
+    * **9. Refinement: Live Lesson Lean and Detailed Paths (v0.11.0)** - Parallel lean vs detailed live-lesson read contracts
     
-* **10 Version Design Pages:**
+* **11 Version Design Pages:**
 
     * **Version 0.1.0** - Initial technical specification
     * **Version 0.2.0** - Refined nullable fields and realistic examples
@@ -96,6 +104,7 @@ This executive summary provides a comprehensive review of the folder, documentin
     * **Version 0.8.0** - User ID refinement (single institutionUserId field)
     * **Version 0.9.0** - Schema quality improvements (timestamp semantics, field ordering, validation)
     * **Version 0.10.0** - Endpoint simplification (remove detail endpoints)
+    * **Version 0.11.0** - Live lesson lean and detailed paths
     
 * **Supporting Documentation:**
 
@@ -103,7 +112,7 @@ This executive summary provides a comprehensive review of the folder, documentin
     * OpenAPI YAML Specifications - Production-ready API definitions
     * Model Specifications - Detailed data model documentation
     * Decision Documentation - Design decisions and deferrals
-    * Refinement Documentation - User ID refinement, schema quality, and endpoint simplification rationale
+    * Refinement Documentation - User ID refinement, schema quality, endpoint simplification, and v0.11.0 lean vs detailed live-lesson rationale
     
 ---
 
@@ -111,7 +120,7 @@ This executive summary provides a comprehensive review of the folder, documentin
 
 ### Version Progression:
 
-The API has evolved through ten complete design iterations from October 24, 2025 through January 7, 2026:
+The API has evolved through eleven complete design iterations from October 24, 2025 through March 23, 2026:
 
 * **v0.1.0** (Oct 24, 2025) - Initial Design
 * **v0.2.0** (Oct 24, 2025) - Nullable Fields & UUIDs
@@ -123,6 +132,7 @@ The API has evolved through ten complete design iterations from October 24, 2025
 * **v0.8.0** (Dec 27, 2025) - User ID Refinement
 * **v0.9.0** (Dec 28, 2025) - Schema Quality Improvements
 * **v0.10.0** (Jan 7, 2026) - Remove Detail Endpoints
+* **v0.11.0** (Mar 23, 2026) - Live lesson lean and detailed paths
 
 **Note:** For detailed version progression table with status tracking, see the individual version pages in the [API Design folder](https://busuucom.atlassian.net/wiki/spaces/BP/pages/7368048668).
 
@@ -609,6 +619,35 @@ The API has evolved through ten complete design iterations from October 24, 2025
 
 ---
 
+#### Version 0.11.0 (Live Lesson Lean and Detailed Paths - March 23, 2026)
+
+**Key Enhancement:** Parallel lean and detailed live-lesson endpoints separating minimal integration contract from ideal contract (additonal fields and enriched summary).
+
+**What Changed:**
+
+* `GET /live-lessons` now returns a **lean** cross-user list (`LiveLessonLean` rows): rows omit illustrative `type` and `level`; there are no `type`/`level` query parameters; response body is `data` and `pagination` only (no top-level `summary`).
+* `GET /users/{institutionUserId}/live-lessons` now returns a **lean** user list: `user`, `data`, and `pagination` only; **no** enriched aggregated `summary`.
+* **New** `GET /live-lessons-detailed`: detailed cross-user list with enriched **`summary`** (totals for the full filtered result set, not only the current page of `data`), `data` with illustrative `type` and `level`, and matching filters (`LiveLessonsDetailedListResponse`).
+* **New** `GET /users/{institutionUserId}/live-lessons-detailed`: detailed user list with `user`, **`summary`**, `data`, and `pagination`; rows include illustrative `type` and `level`; matching query filters (`LiveLessonWithoutInstitutionUserId` rows).
+* New schemas: `LiveLessonLean`, `LiveLessonLeanWithoutInstitutionUserId`, `UserLiveLessonsLeanResponse`, `LiveLessonsDetailedListResponse`. Existing `LiveLesson` and user detailed response shapes document the **detailed** paths.
+
+**Why:**
+
+* The upstream platform does not reliably capture `type` (group/private) or `level` (CEFR); **lean** paths avoid promising those fields for committed integrations.
+* Enriched **`summary`** is treated as an **ideal** offering and is **excluded** from lean routes; detailed paths carry both summary and illustrative row fields for internal product and capability discussion.
+
+**Impact:**
+
+* Live-lesson **read** operations increase from two route families in v0.10.0 to four.
+* **Lean** paths provide a minimal integration contract: does not depend on unreliable `type` or `level`, and does not carry an enriched aggregated `summary`.
+* **Detailed** paths add explicit documentation for an enriched `summary`, as well as illustrative `type` and `level` on rows.
+* Parallel paths support design comparison; future versions may converge to a single path family (e.g. `view` or projection parameter) once 
+requirements and data quality stabilise.
+
+**Note:** For complete v0.11.0 specification details, endpoint comparison table, and OpenAPI YAML, see [0.11.0 Refinement: Live Lesson Lean and Detailed Paths](#0110-refinement-live-lesson-lean-and-detailed-paths) page.
+
+---
+
 ### 3. Technical Design Review Assessment
 
 **Overall Assessment: 9.5/10** ⭐⭐⭐⭐⭐
@@ -638,7 +677,7 @@ The OpenAPI 3.1 YAML specification is **production-ready** and demonstrates prof
 
 ### 2. Iterative Design Improvement ✅
 
-The ten-version evolution (0.1.0 → 0.2.0 → 0.3.0 → 0.4.0 → 0.5.0 → 0.6.0 → 0.7.0 → 0.8.0 → 0.9.0 → 0.10.0) shows excellent iterative refinement:
+The eleven-version evolution (0.1.0 → 0.2.0 → 0.3.0 → 0.4.0 → 0.5.0 → 0.6.0 → 0.7.0 → 0.8.0 → 0.9.0 → 0.10.0 → 0.11.0) shows excellent iterative refinement:
 
 * Clear versioning strategy and rationale for changes
 * Transparent documentation of what changed and why
@@ -651,6 +690,7 @@ The ten-version evolution (0.1.0 → 0.2.0 → 0.3.0 → 0.4.0 → 0.5.0 → 0.6
 * v0.8.0 user ID refinement simplifies API design with single institutionUserId field
 * v0.9.0 schema quality improvements enhance semantic clarity and developer experience
 * v0.10.0 endpoint simplification applies YAGNI principles for cleaner API surface
+* v0.11.0 live lesson parallel lean and detailed paths refine integration vs illustrative contracts
 
 **Impact:** High - Shows design maturity, consideration of real-world usage, and attention to developer experience.
 
@@ -1058,16 +1098,17 @@ The OpenAPI 3.1 YAML specification is **exceptionally comprehensive** and demons
 
 ### Iterative Design Process
 
-The evolution from v0.1.0 → v0.2.0 → v0.3.0 → v0.4.0 → v0.5.0 → v0.6.0 → v0.7.0 → v0.8.0 → v0.9.0 → v0.10.0 shows excellent design discipline:
+The evolution from v0.1.0 → v0.2.0 → v0.3.0 → v0.4.0 → v0.5.0 → v0.6.0 → v0.7.0 → v0.8.0 → v0.9.0 → v0.10.0 → v0.11.0 shows excellent design discipline:
 
 * Clear rationale for each change
-* Documented alternatives considered (especially in v0.3.0 course title decision, v0.6.0 certificate design decisions, v0.9.0 timestamp philosophy, v0.10.0 endpoint simplification)
+* Documented alternatives considered (especially in v0.3.0 course title decision, v0.6.0 certificate design decisions, v0.9.0 timestamp philosophy, v0.10.0 endpoint simplification, v0.11.0 live lesson endpoint split)
 * Non-breaking enhancements where possible
 * Thoughtful optimisation (payload reduction in v0.3.0, endpoint simplification in v0.10.0)
 * Continuous improvement in documentation quality (v0.4.0)
 * Extension of capabilities following established patterns (v0.5.0, v0.6.0, v0.7.0)
 * Schema quality improvements (v0.9.0)
 * YAGNI application (v0.10.0)
+* Live lesson lean vs detailed paths (v0.11.0)
 
 **Recommendation:** Continue this systematic approach for future versions.
 
@@ -1129,7 +1170,9 @@ The design phase has shown significant improvement across all aspects compared t
 
 ## Current API Capabilities
 
-### Endpoints (12 total):
+### Endpoints (14 operations)
+
+Counts **one** `POST` plus **thirteen** `GET` paths as defined in `Nexus_Core_API_v0.11.0.yml`.
 
 **Authentication:**
 
@@ -1140,13 +1183,14 @@ The design phase has shown significant improvement across all aspects compared t
 * `GET /users` - List all users (with filtering, pagination)
 * `GET /users/{institutionUserId}` - Get specific user
 * `GET /users/{institutionUserId}/progress` - Get user progress (v0.3.0 structure)
-* `GET /users/{institutionUserId}/live-lessons` - Get user live lessons with summary (v0.5.0)
+* `GET /users/{institutionUserId}/live-lessons` - Get user live lessons (**lean**, v0.11.0): `user`, `data`, `pagination` only; **no** top-level aggregated `summary`
+* `GET /users/{institutionUserId}/live-lessons-detailed` - Get user live lessons (**detailed**, v0.11.0): `user`, enriched `summary`, `data` with illustrative `type` and `level`, matching filters
 * `GET /users/{institutionUserId}/certificates` - Get user certificates with summary (v0.6.0)
 
 **Courses:**
 
 * `GET /courses` - List all courses (with provider context)
-* `GET /courses/{courseId}` - Get specific course
+* `GET /courses/{id}` - Get specific course (course identifier)
 
 **Progress:**
 
@@ -1154,7 +1198,8 @@ The design phase has shown significant improvement across all aspects compared t
 
 **Live Lessons:**
 
-* `GET /live-lessons` - List all live lessons (with filtering)
+* `GET /live-lessons` - List all live lessons (**lean**, v0.11.0): `data` and `pagination` only; no top-level `summary`; rows omit illustrative `type` / `level`
+* `GET /live-lessons-detailed` - List all live lessons (**detailed**, v0.11.0): enriched `summary` (full filtered set), full row shape, `type` / `level` filters
 
 **Certificates:**
 
@@ -1166,7 +1211,9 @@ The design phase has shown significant improvement across all aspects compared t
 
 **Note:** Detail endpoints for progress (`GET /progress/{id}`), live lessons (`GET /live-lessons/{id}`), and certificates (`GET /certificates/{id}`) were removed in v0.10.0. Use list endpoints with filtering or user-specific endpoints for individual record access.
 
-**Note:** For complete endpoint documentation with request/response examples and parameter details, see the OpenAPI YAML specifications linked from each version increment page.
+**Note:** v0.11.0 splits live-lesson **reads** into **lean** (integration-grade, minimal fields) and **detailed** (illustrative `type` / `level` and enriched `summary`). See [0.11.0 Refinement: Live Lesson Lean and Detailed Paths](#0110-refinement-live-lesson-lean-and-detailed-paths).
+
+**Note:** For complete endpoint documentation with request/response examples and parameter details, see `Nexus_Core_API_v0.11.0.yml` and the OpenAPI YAML pages linked from each version increment.
 
 ### Data Models:
 
@@ -1175,7 +1222,7 @@ The design phase has shown significant improvement across all aspects compared t
 * **User Model:** Fields including institutionUserId, organisational context, lifecycle timestamps (v0.8.0, v0.9.0 timestamp refinements)
 * **Course Model:** Fields including CEFR levels, difficulty object, SSO launch URLs, localisation support (v0.7.0), language enum validation (v0.9.0)
 * **Progress Model:** Fields tracking completion status, scores, learning duration (v0.9.0 field organisation)
-* **LiveLesson Model:** Fields tracking lesson type, language, level, status, and timing (v0.5.0, v0.9.0 timestamp refinements)
+* **Live lesson (v0.11.0):** **Lean** list rows (`LiveLessonLean`, `LiveLessonLeanWithoutInstitutionUserId`) omit unreliable `type` and `level` and omit list-level `summary` on the user lean route; **detailed** lists use `LiveLesson` / `LiveLessonWithoutInstitutionUserId` with illustrative `type` and `level`, plus `LiveLessonSummary` on **detailed** paths only
 * **Certificate Model:** Fields tracking certificate identifiers, metadata, status, dates, grade, and integration support (v0.6.0, v0.9.0 field organisation)
 
 **Supporting Models:**
@@ -1183,15 +1230,17 @@ The design phase has shown significant improvement across all aspects compared t
 * **Provider Model:** Content provider metadata
 * **UserContext Model:** Lightweight user identification (v0.3.0)
 * **ProgressWithoutUserId Model:** Progress without redundant userId (v0.3.0)
-* **LiveLessonWithoutUserId Model:** Live lesson without redundant userId (v0.5.0)
-* **LiveLessonSummary Model:** Aggregated statistics (v0.5.0)
+* **UserLiveLessonsLeanResponse Model:** User-scoped **lean** live-lesson list (v0.11.0); no aggregated `summary`
+* **LiveLessonsDetailedListResponse Model:** Cross-user **detailed** live-lesson list wrapper (v0.11.0)
+* **LiveLessonWithoutUserId Model:** Live lesson without redundant userId on user-specific routes (v0.5.0; **detailed** paths in v0.11.0)
+* **LiveLessonSummary Model:** Aggregated lesson statistics; returned on **detailed** live-lesson list endpoints only from v0.11.0 (not on lean lists)
 * **CertificateWithoutUserId Model:** Certificate without redundant userId (v0.6.0)
 * **CertificateSummary Model:** Aggregated certificate statistics (v0.6.0)
 * **UserCertificatesResponse Model:** Structured certificate response with user context (v0.6.0)
 * **Pagination Model:** Consistent across all list endpoints
 * **Error Model:** Standardised error responses with request tracking
 
-**Note:** For complete data model specifications with detailed field tables, examples, and relationships, see the individual model specification pages linked from each version increment page.
+**Note:** For complete data model specifications with detailed field tables, examples, and relationships, see the individual model specification pages linked from each version increment page (including the v0.11.0 lean live-lesson model spec on Confluence).
 
 ---
 
@@ -1442,12 +1491,13 @@ The design phase has shown significant improvement across all aspects compared t
 * **Standards-Based:** Uses OAuth2, JWT, OpenAPI 3.1, CEFR language levels, ISO 8601 date-time formats
 * **Developer Friendly:** Consistent pagination, filtering, error handling patterns, and comprehensive inline examples
 * **Production Quality:** Comprehensive error handling, request tracking, and monitoring capabilities
-* **Iterative Refinement:** Ten versions demonstrate thoughtful evolution and continuous improvement
+* **Iterative Refinement:** Eleven versions demonstrate thoughtful evolution and continuous improvement
 * **Documentation Excellence:** Inline examples and enhanced descriptions significantly improve developer experience
 * **Digital Credentialing:** Comprehensive certificate tracking with immutable grade snapshots and status lifecycle management
 * **Data Integrity:** Clear separation between operational data (Progress) and credential artifacts (Certificates)
 * **Schema Quality:** Organised field structures with semantic timestamps improve developer experience (v0.9.0)
 * **API Simplicity:** Reduced endpoint count improves discoverability and reduces maintenance burden (v0.10.0)
+* **Live Lesson Refinement:** Parallel lean and detailed live-lesson paths (v0.11.0)
 
 ### Design Considerations
 
@@ -1463,7 +1513,7 @@ The design phase has shown significant improvement across all aspects compared t
 
 ### Future Evolution
 
-* **Current Stage (v0.10.0):** Read-only API with comprehensive tracking capabilities including certificates and course localisation, simplified endpoint structure
+* **Current Stage (v0.11.0):** Read-only API with comprehensive tracking capabilities including certificates and course localisation, simplified endpoint structure, and live-lesson lean vs detailed paths
 * **Deferred:** Tests endpoint implementation deferred pending client demand (see Decision: Defer Tests Endpoint)
 * **Stage 3 (Future):** Add endpoints for licence and credit tracking
 * **Production Release:** Version 1.0.0 will be assigned when API is implemented and released to production
@@ -1472,13 +1522,13 @@ The design phase has shown significant improvement across all aspects compared t
 
 ## Conclusion
 
-The **API Design - Summary** folder represents **excellent progress** from initial proposal through ten design iterations. The comprehensive OpenAPI specification with inline examples, detailed data model documentation, thoughtful iterative improvements, and commitment to standards compliance demonstrate strong technical design capabilities.
+The **API Design - Summary** folder represents **excellent progress** from initial proposal through eleven design iterations. The comprehensive OpenAPI specification with inline examples, detailed data model documentation, thoughtful iterative improvements, and commitment to standards compliance demonstrate strong technical design capabilities.
 
 ### Key Achievements:
 
 ✅ **Complete API Specification:** OpenAPI 3.1 spec is production-ready with inline examples        
 ✅ **Comprehensive Data Models:** User, Course, Progress, LiveLesson, and Certificate models fully documented        
-✅ **Iterative Refinement:** Ten versions show thoughtful evolution with continuous improvement        
+✅ **Iterative Refinement:** Eleven versions show thoughtful evolution with continuous improvement        
 ✅ **Enhanced Developer Experience:** v0.4.0 inline examples and v0.9.0 schema organisation significantly improve developer experience        
 ✅ **Standards Compliance:** OpenAPI 3.1.0 compliant syntax ensures future tooling support        
 ✅ **Enterprise Features:** Multi-institution support, SSO, audit trails, live lesson tracking, certificate credentialing        
@@ -1486,6 +1536,7 @@ The **API Design - Summary** folder represents **excellent progress** from initi
 ✅ **Digital Credentialing:** v0.6.0 certificate tracking with immutable grade snapshots and comprehensive status management        
 ✅ **Informed Decision-Making:** Tests endpoint deferral demonstrates value-driven design approach        
 ✅ **API Simplification:** v0.8.0 user ID refinement and v0.10.0 endpoint simplification improve API clarity and reduce complexity        
+✅ **Live Lesson Refinement:** v0.11.0 parallel lean and detailed live-lesson paths        
 ✅ **Schema Quality:** v0.9.0 timestamp semantics and field organisation enhance semantic clarity
 
 ### Design Phase Assessment:
@@ -1499,7 +1550,7 @@ The **API Design - Summary** folder represents **excellent progress** from initi
 * Architecture Documentation: 4/10 (needs improvement)
 * Implementation Readiness: 9/10
 
-**Design Phase Status:** ✅ **COMPLETE** - The design phase has successfully delivered a comprehensive, production-ready API specification. All ten design iterations (v0.1.0 through v0.10.0) are complete, with full OpenAPI 3.1 specification, detailed data models, and comprehensive documentation.
+**Design Phase Status:** ✅ **COMPLETE** - The design phase has successfully delivered a comprehensive, production-ready API specification. All **eleven design iterations** are complete with full OpenAPI 3.1 specification, detailed data models, and comprehensive documentation. The specification is ready to transition to the implementation phase.
 
 **Design Phase Outcome:** The API design demonstrates exceptional quality with strong technical specifications, comprehensive data models, and thoughtful iterative improvements. The specification is ready to transition to the implementation phase.
 
@@ -1507,7 +1558,7 @@ The **API Design - Summary** folder represents **excellent progress** from initi
 
 **Recommendation:** ✅ **APPROVE for Implementation** - Proceed with addressing critical gaps (architecture and implementation details) while beginning development work in parallel. The OpenAPI specification with inline examples is strong enough to support parallel work streams and will significantly accelerate development.
 
-**Risk Assessment:** **LOW-MEDIUM** - Main risk is implementation efficiency without architecture documentation. Address architecture and implementation details gaps early to maximize development velocity. The enhanced documentation in v0.4.0, v0.5.0, v0.6.0, v0.7.0, v0.8.0, v0.9.0, and v0.10.0 reduces some implementation risk by providing clearer examples and expectations.
+**Risk Assessment:** **LOW-MEDIUM** - Main risk is implementation efficiency without architecture documentation. Address architecture and implementation details gaps early to maximize development velocity. The enhanced documentation in v0.4.0, v0.5.0, v0.6.0, v0.7.0, v0.8.0, v0.9.0, v0.10.0, and v0.11.0 reduces some implementation risk by providing clearer examples and expectations.
 
 ---
 
@@ -11899,6 +11950,149 @@ For human-readable documentation and examples, refer to the sections above in th
 **SwaggerHub:** https://app.swaggerhub.com/apis-docs/arlobarlo/busuu-nexus-core-api/0.10.0
 
 **Note:** This page links to SwaggerHub. For interactive API documentation, see the Confluence page directly.
+
+---
+
+<a id="0110-refinement-live-lesson-lean-and-detailed-paths"></a>
+## 🗄️ 0.11.0 Refinement: Live Lesson Lean and Detailed Paths
+
+**Source:** https://busuucom.atlassian.net/wiki/spaces/BP/pages/7959707649/0.11.0+Refinement+Live+Lesson+Lean+and+Detailed+Paths
+
+---
+
+## Release Information
+
+| Field | Value |
+| --- | --- |
+| **Project** | UNIFIED API |
+| **Stage** | DESIGN |
+| **Version** | 0.11.0 |
+| **Design Date** | 23/03/2026 |
+| **Status** | DRAFT |
+| **Authors** | @Dan Martinez |
+
+---
+
+## Overview
+
+Version 0.11.0 refines live-lesson read operations by introducing parallel **lean** and **detailed** endpoints. After reviewing upstream data quality, **lean** paths omit `type` (group/private) and `level` (CEFR) where the platform does not reliably capture them, and omit **enriched aggregated `summary`** on the user-scoped route so minimal responses stay minimal.
+
+**Detailed** paths (`…/live-lessons-detailed`) retain illustrative `type` and `level`, **enriched `summary`** (counts for the **full filtered result set**, not only the current page of `data`), and matching query filters. They document the **ideal** product and capability surface for internal and partner discussion alongside the integration-grade **lean** contract.
+
+**Note:** This API has not been implemented yet. This document represents a design specification iteration. **Progress** and **certificate** endpoints are unchanged from v0.10.0.
+
+---
+
+## Summary of Changes
+
+### 1. Live Lesson Endpoint Split (Lean vs Detailed)
+
+**What Changed:**
+
+* `GET /live-lessons` now returns a **lean** cross-user list (`LiveLessonLean` rows): no `type` or `level` on rows; no `type`/`level` query parameters; response body is `data` and `pagination` only (no top-level `summary`).
+* `GET /users/{institutionUserId}/live-lessons` now returns a **lean** user list: `user`, `data` (`LiveLessonLeanWithoutInstitutionUserId`), and `pagination` only; **no** aggregated `summary`.
+* **New** `GET /live-lessons-detailed`: detailed cross-user list with `summary`, `data` (`LiveLesson`), and `pagination`; `type` and `level` on rows and as filters (`LiveLessonsDetailedListResponse`).
+* **New** `GET /users/{institutionUserId}/live-lessons-detailed`: detailed user list with `user`, `summary`, `data` (`LiveLessonWithoutInstitutionUserId`), and `pagination`; `type`/`level` on rows and as filters.
+
+**Why:**
+
+* Avoid exposing attributes the platform cannot support reliably in a **committed** lean contract, whilst preserving an **illustrative** surface for roadmap and partner conversations.
+* Treat **enriched `summary`** as an **ideal** offering: it is excluded from **lean** routes so `"minimal"` means minimal (rows and pagination; user context on user-scoped routes only where applicable).
+
+**Impact:**
+
+The change expands live-lesson **read** operations from two route families in v0.10.0 to four whilst leaving **progress**, **certificates**, and all other non-live-lesson behaviour unchanged. Integrators can treat **lean** responses as the default contract for connectors, with a clear rule set: where the design omits `type`, `level`, or user-scoped aggregated `summary`, those capabilities are not implied for production integrations.
+
+**Detailed** paths intentionally add surface area. They document an **ideal** shape for product and partner conversations: enriched `summary` scoped to the full filtered result set, illustrative classification fields on rows, and matching query parameters, without forcing nullable or polymorphic payloads onto a single list URL. That clarity comes at the cost of more operations to document, test, and explain. If upstream data quality and client demand stabilise, a future version could evaluate consolidating **lean** and **detailed** behind one resource and an explicit projection or `view` parameter, subject to OpenAPI and caching implications.
+
+---
+
+## Design Decision: Lean Contract vs Ideal (Detailed) Contract
+
+### Context
+
+v0.10.0 documented a single `LiveLesson` shape including `type` and `level`, and user live lessons included **summary** statistics. Data-quality constraints mean not all of those fields are equally safe to promise for a first integration wave.
+
+### Options Considered
+
+**Option 1: Single Endpoint, Optional or Nullable Fields**
+
+* Keeps a single URL for all live-lesson reads
+* Would allow `type`, `level`, or `summary` to be optional or nullable on one response shape
+* **Pros:** One URL, simple mental model
+* **Cons:** Unreliable optional fields invite misuse; unclear which fields are integration-grade
+
+**Option 2: Single Endpoint, `view` or Projection Query Parameter**
+
+* One path with an explicit `view` or projection parameter to select lean vs detailed payloads
+* **Pros:** One path; toggles shape explicitly
+* **Cons:** OpenAPI and client generation are heavier; caches and rate limits must treat variants distinctly
+
+**Option 3: Parallel Paths - Lean and Detailed (SELECTED)**
+
+* Distinct URLs for **lean** and **detailed** list operations with explicit schemas for each
+* **Pros:** Clear operations and schemas; strong artifact for internal comparison
+* **Cons:** More paths to maintain until the design converges
+
+### Decision
+
+**Selected: Option 3 - Parallel Lean and Detailed Live-Lesson Paths**
+
+### Rationale
+
+* Stakeholders compare contracts side-by-side without polymorphic response ambiguity.
+* **Detailed** paths document the **ideal** product shape (enriched summary + full row classification) even when implementation or upstream data lags.
+
+### Future Consideration
+
+* If the API hardens for production, evaluate merging variants behind one resource and an explicit projection or `view` parameter after field reliability and authorisation are settled.
+
+---
+
+## API Endpoints Overview (Live Lessons - v0.11.0 Delta)
+
+| Method | Endpoint | Description | Notes |
+| --- | --- | --- | --- |
+| GET | `/live-lessons` | List all live lessons | **v0.11.0:** **Lean** contract: trimmed row schema; no `type`/`level` filters |
+| GET | `/users/{institutionUserId}/live-lessons` | Get user live lessons | **v0.11.0:** **Lean** contract: **no** top-level `summary`; trimmed rows |
+| GET | `/live-lessons-detailed` | List all live lessons (detailed) | **New:** `summary`, full row, `type`/`level` filters |
+| GET | `/users/{institutionUserId}/live-lessons-detailed` | Get user live lessons (detailed) | **New:** `user`, `summary`, full row, `type`/`level` filters |
+
+All other endpoints match v0.10.0 unless separately versioned.
+
+---
+
+## Complete OpenAPI Specification
+
+The complete OpenAPI specification for this version is maintained in a separate YAML file:
+
+**File:** `Nexus_Core_API_v0.11.0.yml`
+
+**Repository:** `yaml/Nexus_Core_API_v0.11.0.yml` (this repo)
+
+**Confluence (full YAML body):** [v0.11.0 OpenAPI YAML Spec](https://busuucom.atlassian.net/wiki/spaces/BP/pages/7959937045)
+
+For human-readable documentation and examples, refer to the sections above in this document.
+
+---
+
+<a id="v0110-openapi-yaml-spec"></a>
+## ⚙️ v0.11.0 OpenAPI YAML Spec
+
+**Source:** https://busuucom.atlassian.net/wiki/spaces/BP/pages/7959937045
+
+**Note:** This page contains OpenAPI YAML code blocks. For the complete OpenAPI 3.1 specification, see the Confluence page directly. (Rename the Confluence page title to drop the stray “Spec2” suffix when convenient.)
+
+---
+
+<a id="v0110-swaggerhub-docs"></a>
+## 🔗 v0.11.0 Swaggerhub Docs
+
+**Source:** https://busuucom.atlassian.net/wiki/spaces/BP/pages/7960035329/v0.11.0+Swaggerhub+Docs
+
+**SwaggerHub:** https://app.swaggerhub.com/apis-docs/arlobarlo/busuu-nexus-core-api/0.11.0
+
+**Note:** This page links to SwaggerHub. For interactive API documentation, see the Confluence page directly. If the 0.11.0 spec is not yet published to SwaggerHub, use the Confluence embed and the repo YAML until the link resolves.
 
 ---
 

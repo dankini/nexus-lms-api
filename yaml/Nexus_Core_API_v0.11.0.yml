@@ -1,0 +1,3618 @@
+openapi: 3.1.0
+info:
+  title: Busuu Nexus Core API
+  description: |
+    A public-facing API for LMS integrations and data access.
+
+    This API provides read-only access to core Busuu learning data including:
+    - Enhanced user information with organisational context
+    - Optimised course catalogs with provider-level metadata
+    - Aligned progress tracking with course duration consistency
+    - Live lesson tracking with aggregation and summary statistics
+    - Certificate tracking with digital credentialing support
+
+    Designed for enterprise connectors and institutional integrations.
+
+    **Design Phase:**
+    - Server URLs to be determined during implementation.
+    - For testing, use the Postman mock server.
+
+    **Updates:**
+
+    **04 November 2025 (v0.4.0):**
+    Enhanced endpoint descriptions with:
+    - Detailed parameter explanations and use cases
+    - HTTP status codes in use case examples
+    - Cross-references between related endpoints
+    - Standardised common use cases format
+
+    **05 November 2025 (v0.5.0):**
+    Added live lesson endpoints:
+    - List all live lessons with filtering
+    - Get specific live lessons details
+    - Get user live lessons with summary statistics
+
+    **06 November 2025 (v0.6.0):**
+    Added certificate tracking endpoints:
+    - List all certificates with filtering
+    - Get specific certificate details
+    - Get user certificates with summary statistics
+    - Added grade field to Certificate model (derived from completion score in progress record)
+    - Added progressId field to Certificate model (links certificate to source progress record)
+
+    **26 December 2025 (v0.7.0):**
+    Added localisation support:
+    - Added localisation field to Course model
+    - Added Localisation schema with defaultLocale, availableLocales and translations
+    - Added LocalisedCourse schema for translated course fields
+    - Added includeAllLocales query parameter to course endpoints
+
+    **27 December 2025 (v0.8.0):**
+    Refactored the user identification system:
+    - Replaced the previous dual-ID approach that used both id and userId fields
+    - Added a single, semantically clear identifier (institutionUserId) throughout
+    - Updated all path parameters from /users/{id} to /users/{institutionUserId}
+    - Updated all query parameters from userId to institutionUserId
+    - Renamed schemas: ProgressWithoutUserId → ProgressWithoutInstitutionUserId, etc.
+
+    **30 December 2025 (v0.9.0):**
+    OpenAPI specification and schema quality improvements:
+    - Enhanced schema consistency across all resources
+    - Improved field naming conventions and type definitions
+    - Standardised response structures
+    - Better alignment between documentation and API behavior
+    - Improved validation rules and constraint definitions
+
+    **07 January 2026 (v0.10.0):**
+    Endpoint pattern refinement:
+    - Removed detail endpoints for transactional resources (progress, live-lessons, certificates)
+    - Retained list and user-specific endpoints for all resources
+    - Maintained detail endpoints for reference data (courses, users)
+    - Applied YAGNI principle: simplified endpoint structure reduces API surface complexity
+    - Rationale: Detail endpoints for transactional resources were unnecessary for identified use cases
+
+    **23 March 2026 (v0.11.0):**
+    Live lessons split into parallel **lean** and **detailed** paths (latest iteration):
+    - `GET /live-lessons` and `GET /users/{institutionUserId}/live-lessons` — **lean** contract: no illustrative `type`/`level`, and no **enriched** aggregated `summary` (minimal rows + pagination only; user lean adds `user` context)
+    - `GET /live-lessons-detailed` and `GET /users/{institutionUserId}/live-lessons-detailed` — **ideal / enriched** contract: same filters as lean counterparts plus illustrative `type`/`level`, and **aggregated `summary`** (status totals across the filtered set, not just the current page)
+
+  version: 0.11.0
+  contact:
+    name: Busuu API Team
+    email: api-support@busuu.com
+  license:
+    name: Proprietary
+    url: https://busuu.com/terms
+
+servers:
+  - url: https://api.example.com/v1
+    description: Production server (URL to be determined)
+  - url: https://api-staging.example.com/v1
+    description: Staging server (URL to be determined)
+
+security:
+  - BearerAuth: []
+
+paths:
+  # Authentication
+  /auth/token:
+    post:
+      summary: Create access token
+      operationId: createAccessToken
+      description: |
+        Authenticate using OAuth2 client credentials flow and receive a JWT access token for API access.
+
+        The access token expires after 3600 seconds (1 hour). Send the token in the Authorization
+        header as "Bearer {{access_token}}" for all authenticated endpoints.
+
+        **Request Body:**
+        - `client_id`: Your API client identifier
+        - `client_secret`: Your API client secret
+        - `grant_type`: Must be "client_credentials"
+        - `scope`: Requested permissions (optional)
+
+        **Response:**
+        - `access_token': JWT token for authentication
+        - `token_type': Always "Bearer"
+        - `expires_in': Token lifetime in seconds (3600)
+        - `scope`: Granted permissions
+
+        **Authentication:** Not required (this endpoint generates the token)
+
+        **Common Use Cases:**
+        - Initial authentication (200): `POST /auth/token` with valid credentials
+        - Token refresh when expired (200): Request new token with same credentials
+        - Obtaining specific permission scopes (200): Include `scope` parameter in request
+        - Invalid credentials (401): Will return authentication error
+
+        **Related Endpoints:**
+        - Use this token for all authenticated endpoints (see `Authorization` header requirement)
+        - Test token validity with `GET /utilities/health` (requires no auth) or `GET /users` (requires auth)
+      tags:
+        - Authentication
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - client_id
+                - client_secret
+                - grant_type
+              properties:
+                client_id:
+                  type: string
+                  description: Client identifier
+                  examples: ["client-id-here"]
+
+                client_secret:
+                  type: string
+                  description: Client secret
+                  examples: ["client-secret-here"]
+
+                grant_type:
+                  type: string
+                  enum: [client_credentials]
+                  description: OAuth2 grant type
+                  examples: ["client_credentials"]
+
+                scope:
+                  type: string
+                  description: Requested permissions scope
+                  examples: ["read:users read:courses read:progress"]
+
+      responses:
+        "200":
+          description: Successful authentication
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token:
+                    type: string
+                    description: Bearer token for API access
+                    examples: ["eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."]
+
+                  token_type:
+                    type: string
+                    enum: [Bearer]
+                    examples: ["Bearer"]
+
+                  expires_in:
+                    type: integer
+                    description: Token expiration time in seconds
+                    examples: [3600]
+
+                  scope:
+                    type: string
+                    description: Granted permissions scope
+                    examples: ["read:users read:courses read:progress"]
+
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  # Users
+  /users:
+    get:
+      summary: List all users
+      operationId: listUsers
+      description: |
+        Retrieve a paginated list of all users with organisational context including institution, department, role, and team assignments.
+
+        **Query Parameters:**
+        - `page`, `limit`: Control pagination (default: page 1, limit 25, max 100)
+        - `sort`: Order results by field (e.g., "registeredAt:desc", "lastActiveAt:desc")
+        - `status`: Filter by "active" or "removed" status
+        - `role`: Filter by "admin", "team lead", or "student"
+        - `department`: Filter by department name
+        - `search`: Search by name or email (partial match)
+
+        **Response:**
+        - `data`: Array of User objects with full profile details
+        - `pagination`: Metadata including `page`, `limit`, `total`, `totalPages, `hasNext', `hasPrevious`
+
+        **Authentication:** Required (Bearer token)
+
+        **Common Use Cases:**
+        - List active users (200): `GET /users?status=active`
+        - Find admins (200): `GET /users?role=admin`
+        - Search by name (200): `GET /users?search=john`
+        - Filter by department (200): `GET /users?department=Engineering&limit=50`
+        - Empty result set (200): Query with no matches returns `data: []`
+        - Invalid parameters (400): Incorrect parameter types or values
+        - Missing authentication (401): Request without valid Bearer token
+
+        **Related Endpoints:**
+        - Get specific user details: `GET /users/{institutionUserId}`
+        - View user's learning progress: `GET /users/{institutionUserId}/progress`
+        - View user's live lessons (lean): `GET /users/{institutionUserId}/live-lessons`
+        - Live lessons with type/level (PoC): `GET /users/{institutionUserId}/live-lessons-detailed`
+        - To authenticate first: `POST /auth/token`
+      tags:
+        - Users
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Sort"
+        - name: status
+          in: query
+          description: Filter by user status
+          schema:
+            type: string
+            enum: [active, removed]
+        - name: role
+          in: query
+          description: Filter by user role
+          schema:
+            type: string
+            enum: [admin, team lead, student]
+        - name: department
+          in: query
+          description: Filter by department
+          schema:
+            type: string
+        - name: search
+          in: query
+          description: Search by name or email
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/User"
+                  pagination:
+                    $ref: "#/components/schemas/Pagination"
+              examples:
+                default:
+                  value:
+                    data:
+                      # User 1: Admin
+                      - institutionUserId: "f1e2d3c4-b5a6-4c7d-8e9f-0a1b2c3d4e5f"
+                        institutionId: "550e8400-e29b-41d4-a716-446655440000"
+                        email: "john.doe@example.com"
+                        username: "johnd123"
+                        firstName: "John"
+                        lastName: "Doe"
+                        status: "active"
+                        role: "admin"
+                        department: "Accounts"
+                        countryCode: "FR"
+                        employeeId: "empId12345678"
+                        team: "A-team"
+                        registeredAt: "2025-01-20T21:01:58Z"
+                        expiresAt: "2025-01-20T21:01:58Z"
+                        removedAt: null
+                        lastActiveAt: "2025-01-20T21:01:58Z"
+                      # User 2: Student
+                      - institutionUserId: "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d"
+                        institutionId: "550e8400-e29b-41d4-a716-446655440000"
+                        email: "jane.smith@example.com"
+                        username: "janes456"
+                        firstName: "Jane"
+                        lastName: "Smith"
+                        status: "active"
+                        role: "student"
+                        department: "Sales"
+                        countryCode: "GB"
+                        employeeId: "empId87654321"
+                        team: "B-team"
+                        registeredAt: "2025-01-19T14:22:10Z"
+                        expiresAt: "2025-01-20T21:01:58Z"
+                        removedAt: null
+                        lastActiveAt: "2025-01-20T18:45:32Z"
+                      # User 3: Team Lead
+                      - institutionUserId: "c3d4e5f6-a7b8-4c9d-0e1f-2a3b4c5d6e7f"
+                        institutionId: "550e8400-e29b-41d4-a716-446655440000"
+                        email: "bob.wilson@example.com"
+                        username: "bobw789"
+                        firstName: "Bob"
+                        lastName: "Wilson"
+                        status: "active"
+                        role: "team lead"
+                        department: "Engineering"
+                        countryCode: "US"
+                        employeeId: "empId11223344"
+                        team: "C-team"
+                        registeredAt: "2025-01-18T09:15:43Z"
+                        expiresAt: "2025-01-20T21:01:58Z"
+                        removedAt: null
+                        lastActiveAt: "2025-01-20T16:30:22Z"
+                    pagination:
+                      page: 1
+                      limit: 25
+                      total: 150
+                      totalPages: 6
+                      hasNext: true
+                      hasPrevious: false
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /users/{institutionUserId}:
+    get:
+      summary: Get specific user
+      operationId: getUser
+      description: |
+        Retrieve complete information about a specific user by their unique identifier (UUID).
+
+        Returns full user profile including core identity (institutionUserId, institutionId, email),
+        profile details (name, department, country), organisational context (status, role,
+        employeeId, team), and timestamps (created, updated, expiration, last active, removed).
+
+        **Path Parameters:**
+        - `institutionUserId`: Institution-specific user identifier (UUID format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)
+
+        **Response:** Single User object (not wrapped in data array)
+
+        **Notable Fields:**
+        - `status`: Either "active" or "removed"
+        - `role`: One of "admin", "team lead", or "student"
+        - `removedAt`: Nullable - only populated for removed users
+        - `username`, `firstName`, `lastName`, `department`, `countryCode`, `employeeId`, `team`: Nullable
+
+        **Authentication:** Required (Bearer token)
+
+        **Common Use Cases:**
+        - Get full user profile for display (200): `GET /users/{institutionUserId}`
+        - Verify user exists before operations (200 or 404): Check response status
+        - Check user's organisational context and permissions (200): Review `role`, `department`, `team` fields
+        - User not found (404): Invalid or non-existent user ID
+        - Invalid ID format (400): Malformed UUID
+        - Missing authentication (401): Request without valid Bearer token
+
+        **Related Endpoints:**
+        - List all users: `GET /users`
+        - View this user's learning progress: `GET /users/{institutionUserId}/progress`
+        - View this user's live lessons (lean): `GET /users/{institutionUserId}/live-lessons`
+        - Live lessons with type/level (PoC): `GET /users/{institutionUserId}/live-lessons-detailed`
+        - Find progress records for this user: `GET /progress?institutionUserId={institutionUserId}`
+      tags:
+        - Users
+      parameters:
+        - $ref: "#/components/parameters/InstitutionUserId"
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  # Courses
+  /courses:
+    get:
+      summary: List all courses
+      operationId: listCourses
+      description: |
+        Retrieve a paginated list of all available language learning courses with provider-level
+        metadata. Response includes provider information (Busuu) at the top level for context.
+
+        **Query Parameters:**
+        - `page`, `limit`: Control pagination (default: page 1, limit 25, max 100)
+        - `sort`: Order results by field (e.g., "publishedAt:desc")
+        - `level`: Filter by CEFR level (A1, A2, B1, B2, C1)
+        - `status`: Filter by "active" or "archived"
+        - `difficulty`: Filter by difficulty level (beginner, elementary, intermediate, upper_intermediate, advanced)
+        - `search`: Search by title or description (partial match)
+
+        **Response Structure:**
+        - `provider`: Content provider information (Busuu)
+        - `data`: Array of Course objects with CEFR levels, difficulty ratings, durations, SSO launch URLs, and localisation
+        - `pagination`: Metadata including page, limit, total, totalPages
+
+        **Launch URL Format:**
+        SSO URLs contain template variables: `https://sso.busuu.com/saml/{{busuuInstitutionId}}/login?course={{courseId}}&lang={{language}}&level={{level}}`
+        Replace `{{busuuInstitutionId}}`, `{{courseId}}`, `{{language}}` and `{{level}}` with actual values before use.
+
+        **Authentication:** Required (Bearer token)
+
+        **Common Use Cases:**
+        - List all active courses (200): `GET /courses?status=active`
+        - Find beginner courses (200): `GET /courses?level=A1&difficulty=beginner`
+        - Search for language (200): `GET /courses?search=Spanish`
+        - Filter by CEFR level (200): `GET /courses?level=B1&status=active`
+        - Get courses for specific difficulty (200): `GET /courses?difficulty=intermediate`
+        - Reduced payload without localisation (200): `GET /courses?includeAllLocales=false`
+        - Empty result set (200): Query with no matches returns `data: []`
+        - Invalid parameters (400): Incorrect parameter types or values
+        - Missing authentication (401): Request without valid Bearer token
+
+        **Related Endpoints:**
+        - Get specific course details: `GET /courses/{id}`
+        - View progress for a course: `GET /progress?courseId={id}`
+        - To authenticate first: `POST /auth/token`
+      tags:
+        - Courses
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Sort"
+        - name: level
+          in: query
+          description: Filter by course level
+          schema:
+            type: string
+            enum: [A1, A2, B1, B2, C1]
+        - name: status
+          in: query
+          description: Filter by course status
+          schema:
+            type: string
+            enum: [active, archived]
+        - name: difficulty
+          in: query
+          description: Filter by difficulty level
+          schema:
+            type: string
+            enum:
+              [beginner, elementary, intermediate, upper_intermediate, advanced]
+        - name: search
+          in: query
+          description: Search by title or description
+          schema:
+            type: string
+        - name: includeAllLocales
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: true
+          description: |
+            Whether to include the full localisation object in the response.
+
+            - true (default): Include localisation object with all translations
+            - false: Omit localisation object, return only root fields in default locale
+
+            Use false for:
+            - Reduced payload size when translations not needed
+            - Simple integrations that don't support localisation
+            - Performance optimisation (single cache entry serves all clients)
+
+            Note: Root fields (title, description) always contain default locale (English).
+            Clients should implement their own locale selection from the translations array.
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CourseListResponse"
+              examples:
+                default:
+                  value:
+                    provider:
+                      id: "busuu"
+                      name: "Busuu"
+                      description: "Language learning platform"
+                      logoUrl: "https://path/to/logo.jpg"
+                    data:
+                      - id: "pack_level_en_a1"
+                        title: "English A1 - Beginner"
+                        description: "Complete beginner course for English language learning"
+                        status: "active"
+                        language: "English"
+                        level: "A1"
+                        difficulty:
+                          value: "beginner"
+                          label: "Beginner"
+                          order: 1
+                        duration: 1110
+                        thumbnailUrl: "https://cdn.busuu.com/courses/en-a1-thumbnail.jpg"
+                        launchUrl: "https://sso.busuu.com/saml/{{busuuInstitutionId}}/login?course={{courseId}}"
+                        localisation:
+                          defaultLocale: "en"
+                          availableLocales: ["en", "fr", "es", "de"]
+                          translations:
+                            - locale: "fr"
+                              title: "Anglais A1 - Débutant"
+                              description: "Cours complet pour débutants en anglais"
+                            - locale: "es"
+                              title: "Inglés A1 - Principiante"
+                              description: "Curso completo para principiantes de inglés"
+                            - locale: "de"
+                              title: "Englisch A1 - Anfänger"
+                              description: "Vollständiger Anfängerkurs für Englisch"
+                        createdAt: "2025-01-20T21:01:58Z"
+                        publishedAt: "2025-01-20T21:01:58Z"
+                        updatedAt: null
+                        archivedAt: null
+                      - id: "pack_level_en_a2"
+                        title: "English A2 - Elementary"
+                        description: "Elementary English course for language learners"
+                        status: "active"
+                        language: "English"
+                        level: "A2"
+                        difficulty:
+                          value: "elementary"
+                          label: "Elementary"
+                          order: 2
+                        duration: 1200
+                        thumbnailUrl: "https://cdn.busuu.com/courses/en-a2-thumbnail.jpg"
+                        launchUrl: "https://sso.busuu.com/saml/{{busuuInstitutionId}}/login?course={{courseId}}"
+                        localisation: null
+                        createdAt: "2025-01-20T21:01:58Z"
+                        publishedAt: "2025-01-20T21:01:58Z"
+                        updatedAt: null
+                        archivedAt: null
+                      - id: "pack_level_es_b1"
+                        title: "Spanish B1 - Intermediate"
+                        description: "Intermediate Spanish course for confident speakers"
+                        status: "active"
+                        language: "Spanish"
+                        level: "B1"
+                        difficulty:
+                          value: "intermediate"
+                          label: "Intermediate"
+                          order: 3
+                        duration: 1350
+                        thumbnailUrl: "https://cdn.busuu.com/courses/es-b1-thumbnail.jpg"
+                        launchUrl: "https://sso.busuu.com/saml/{{busuuInstitutionId}}/login?course={{courseId}}"
+                        localisation: null
+                        createdAt: "2025-01-18T15:30:00Z"
+                        publishedAt: "2025-01-18T15:30:00Z"
+                        updatedAt: null
+                        archivedAt: null
+                    pagination:
+                      page: 1
+                      limit: 25
+                      total: 85
+                      totalPages: 4
+                      hasNext: true
+                      hasPrevious: false
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /courses/{id}:
+    get:
+      summary: Get specific course
+      operationId: getCourse
+      description: |
+        Retrieve complete information about a specific language learning course by its unique
+        identifier. Response includes provider context (Busuu) at the top level.
+
+        **Path Parameters:**
+        - `id`: Course identifier (format: pack_level_language_level, e.g., "pack_level_en_a1")
+
+        **Response Structure:**
+        - `provider`: Content provider information (Busuu)
+        - `course`: Single Course object with complete details
+
+        **Course Fields Include:**
+        - Core: id, title, description, language
+        - CEFR: level (A1-C1)
+        - Difficulty: Structured object with value, label, and numeric order (1-5)
+        - Integration: launchUrl with SSO template variables
+        - Metadata: duration (minutes), thumbnailUrl, status (active/archived), localisation (translations)
+        - Timestamps: createdAt, publishedAt, updatedAt, archivedAt
+
+        **Launch URL Usage:**
+        Template format: `https://sso.busuu.com/saml/{{busuuInstitutionId}}/login?course={{courseId}}&lang={{language}}&level={{level}}`
+        Replace `{{busuuInstitutionId}}`, `{{courseId}}`, `{{language}}` and `{{level}}` with actual values before use.
+
+        **Authentication:** Required (Bearer token)
+
+         **Common Use Cases:**
+        - Get course details for display (200): `GET /courses/{id}`
+        - Retrieve launch URL for SSO integration (200): Extract `launchUrl` and replace template variables
+        - Check course status before enrollment (200): Review `status` field (active/archived)
+        - View course duration for planning (200): Check `duration` field in minutes
+        - Reduced payload without localisation (200): `GET /courses/{id}?includeAllLocales=false`
+        - Course not found (404): Invalid or non-existent course ID
+        - Missing authentication (401): Request without valid Bearer token
+
+        **Related Endpoints:**
+        - List all courses: `GET /courses`
+        - View progress for this course: `GET /progress?courseId={id}`
+        - Filter courses by level: `GET /courses?level={A1-C1}`
+      tags:
+        - Courses
+      parameters:
+        - $ref: "#/components/parameters/CourseId"
+        - name: includeAllLocales
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: true
+          description: |
+            Whether to include the full localisation object.
+            (Same behavior as /courses endpoint)
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CourseDetailResponse"
+              examples:
+                default:
+                  value:
+                    provider:
+                      id: "busuu"
+                      name: "Busuu"
+                      description: "Language learning platform"
+                      logoUrl: "https://path/to/logo.jpg"
+                    course:
+                      id: "pack_level_en_a1"
+                      title: "English A1 - Beginner"
+                      description: "Complete beginner course for English language learning"
+                      status: "active"
+                      language: "English"
+                      level: "A1"
+                      difficulty:
+                        value: "beginner"
+                        label: "Beginner"
+                        order: 1
+                      duration: 1110
+                      thumbnailUrl: "https://cdn.busuu.com/courses/en-a1-thumbnail.jpg"
+                      launchUrl: "https://sso.busuu.com/saml/{{busuuInstitutionId}}/login?course={{courseId}}"
+                      localisation:
+                        defaultLocale: "en"
+                        availableLocales: ["en", "fr", "es", "de"]
+                        translations:
+                          - locale: "fr"
+                            title: "Anglais A1 - Débutant"
+                            description: "Cours complet pour débutants en anglais"
+                          - locale: "es"
+                            title: "Inglés A1 - Principiante"
+                            description: "Curso completo para principiantes de inglés"
+                          - locale: "de"
+                            title: "Englisch A1 - Anfänger"
+                            description: "Vollständiger Anfängerkurs für Englisch"
+                      createdAt: "2025-01-20T21:01:58Z"
+                      publishedAt: "2025-01-20T21:01:58Z"
+                      updatedAt: null
+                      archivedAt: null
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  # Progress
+  /progress:
+    get:
+      summary: List all progress records
+      operationId: listProgressRecords
+      description: |
+        Retrieve a paginated list of all learning progress records across all users and courses.
+        Use for reporting, analytics, and cross-user progress monitoring.
+
+        **Query Parameters:**
+        - `page`, `limit`: Control pagination (default: page 1, limit 25, max 100)
+        - `sort`: Order results by field (e.g., "startedAt:desc", "lastAccessedAt:desc")
+        - `institutionUserId`: Filter by specific institution user UUID
+        - `courseId`: Filter by specific course ID
+        - `status`: Filter by "in_progress" or "completed"
+        - `result`: Filter by "pass" or "fail" (only applies to completed courses)
+
+        **Response Structure:**
+        - `data`: Array of Progress objects (includes institutionUserId since this is cross-user list)
+        - `pagination`: Metadata including page, limit, total, totalPages
+
+        **Progress Fields Include:**
+        - Identity: id, institutionUserId, courseId
+        - Status: status (in_progress/completed)
+        - Metrics: progressPercentage (0-100), lessonsCompleted, lessonsTotal
+        - Completion: result (pass/fail), score (0-100)
+        - Duration: learningDuration (minutes) - populated when completed
+        - Timestamps: startedAt, lastAccessedAt, completedAt
+
+        **Learning Duration Behavior:**
+        - Initialized to 0 when progress record created
+        - Populated with course.duration when status becomes 'completed'
+        - Represents standard course duration, not actual time spent
+
+        **Authentication:** Required (Bearer token)
+
+        **Common Use Cases:**
+        - Report on completions (200): `GET /progress?status=completed`
+        - Track specific user (200): `GET /progress?institutionUserId={uuid}`
+        - Monitor specific course (200): `GET /progress?courseId=pack_level_en_a1`
+        - Find failures (200): `GET /progress?result=fail`
+        - Find in_progress enrollments (200): `GET /progress?status=in_progress`
+        - Combine filters (200): `GET /progress?status=completed&result=pass`
+        - Empty result set (200): Query with no matches returns `data: []`
+        - Invalid parameters (400): Incorrect parameter types or values
+        - Missing authentication (401): Request without valid Bearer token
+
+        **Related Endpoints:**
+        - Get all progress for a user: `GET /users/{institutionUserId}/progress`
+        - Get user details: `GET /users/{institutionUserId}`
+        - Get course details: `GET /courses/{id}`
+      tags:
+        - Progress
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Sort"
+        - name: institutionUserId
+          in: query
+          description: Filter by institution user ID
+          schema:
+            type: string
+        - name: courseId
+          in: query
+          description: Filter by course ID
+          schema:
+            type: string
+        - name: status
+          in: query
+          description: Filter by progress status
+          schema:
+            type: string
+            enum: [in_progress, completed]
+        - name: result
+          in: query
+          description: Filter by completion result
+          schema:
+            type: string
+            enum: [pass, fail]
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Progress"
+                  pagination:
+                    $ref: "#/components/schemas/Pagination"
+              examples:
+                default:
+                  value:
+                    data:
+                      - id: "2ed43c78-b5a6-4c7d-8e9f-0a1b2c3d4e5f"
+                        institutionUserId: "f1e2d3c4-b5a6-4c7d-8e9f-0a1b2c3d4e5f"
+                        courseId: "pack_level_en_a1"
+                        status: "completed"
+                        progressPercentage: 100
+                        lessonsCompleted: 20
+                        lessonsTotal: 20
+                        learningDuration: 1110
+                        result: "pass"
+                        score: 85
+                        startedAt: "2025-01-15T10:00:00Z"
+                        lastAccessedAt: "2025-01-20T15:30:00Z"
+                        completedAt: "2025-01-20T15:30:00Z"
+                      - id: "3fe54d89-c6b7-4d8e-9f0a-1b2c3d4e5f6a"
+                        institutionUserId: "f1e2d3c4-b5a6-4c7d-8e9f-0a1b2c3d4e5f"
+                        courseId: "pack_level_en_a2"
+                        status: "in_progress"
+                        progressPercentage: 65
+                        lessonsCompleted: 13
+                        lessonsTotal: 20
+                        learningDuration: 0
+                        result: null
+                        score: null
+                        startedAt: "2025-01-18T09:00:00Z"
+                        lastAccessedAt: "2025-01-20T18:00:00Z"
+                        completedAt: null
+                      - id: "4af65e90-d7c8-4e9f-0a1b-2c3d4e5f6a7b"
+                        institutionUserId: "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d"
+                        courseId: "pack_level_es_b1"
+                        status: "completed"
+                        progressPercentage: 100
+                        lessonsCompleted: 25
+                        lessonsTotal: 25
+                        learningDuration: 1350
+                        result: "pass"
+                        score: 92
+                        startedAt: "2025-01-10T08:00:00Z"
+                        lastAccessedAt: "2025-01-19T16:45:00Z"
+                        completedAt: "2025-01-19T16:45:00Z"
+                    pagination:
+                      page: 1
+                      limit: 25
+                      total: 125
+                      totalPages: 5
+                      hasNext: true
+                      hasPrevious: false
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /users/{institutionUserId}/progress:
+    get:
+      summary: Get user progress
+      operationId: listUserProgress
+      description: |
+        Retrieve a paginated list of learning progress records for a specific user.
+
+        This endpoint returns the user's identification context plus an array of progress entries
+        (without institutionUserId inside each entry) and pagination metadata.
+
+        **Path Parameters:**
+        - `institutionUserId`: Institution-specific user identifier (UUID format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)
+
+        **Query Parameters:**
+        - `status`: Filter by progress status (`in_progress`, `completed`)
+        - `result`: Filter by completion outcome (`pass`, `fail`)
+        - `page`, `limit`, `sort`: Standard pagination and sorting controls
+
+        **Response:**
+        - `user`: Lightweight user context (`institutionUserId`, `email`)
+        - `data`: Array of progress records (no `institutionUserId` field)
+        - `pagination`: Metadata including `page`, `limit`, `total`, `totalPages`, `hasNext`, `hasPrevious`
+
+        **Progress States:**
+        - `in_progress`:
+          - `progressPercentage`: 0–99
+          - `completedAt`: null
+          - `result`: null
+          - `score`: null
+          - `learningDuration`: typically 0 (implementation-dependent during in_progress)
+        - `completed`:
+          - `progressPercentage`: 100
+          - `completedAt`: timestamp when finished
+          - `result`: `pass` or `fail`
+          - `score`: final score 0–100
+          - `learningDuration`: populated with course duration
+
+        **Authentication:** Required (Bearer token)
+
+        **Common Use Cases:**
+        - Get all progress for a user (200): `GET /users/{institutionUserId}/progress`
+        - Filter to only completed records (200): `GET /users/{institutionUserId}/progress?status=completed`
+        - Find passes (200): `GET /users/{institutionUserId}/progress?status=completed&result=pass`
+        - Empty result set (200): Returns `data: []` with pagination metadata
+        - Invalid parameters (400): Incorrect parameter types or values
+        - Missing authentication (401): Request without valid Bearer token
+        - User not found (404): Non-existent user ID
+
+        **Related Endpoints:**
+        - List all progress (cross-user): `GET /progress`
+        - Get user details: `GET /users/{institutionUserId}`
+        - Get course details: `GET /courses/{id}`
+      tags:
+        - Progress
+      parameters:
+        - $ref: "#/components/parameters/InstitutionUserId"
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Sort"
+        - name: status
+          in: query
+          description: Filter by progress status
+          schema:
+            type: string
+            enum: [in_progress, completed]
+        - name: result
+          in: query
+          description: Filter by completion result
+          schema:
+            type: string
+            enum: [pass, fail]
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProgressResponse"
+              examples:
+                default:
+                  value:
+                    user:
+                      institutionUserId: "f1e2d3c4-b5a6-4c7d-8e9f-0a1b2c3d4e5f"
+                      email: "john.doe@example.com"
+                    data:
+                      - id: "2ed43c78-b5a6-4c7d-8e9f-0a1b2c3d4e5f"
+                        courseId: "pack_level_en_a1"
+                        status: "completed"
+                        progressPercentage: 100
+                        lessonsCompleted: 20
+                        lessonsTotal: 20
+                        result: "pass"
+                        score: 85
+                        learningDuration: 1110
+                        startedAt: "2025-01-15T10:00:00Z"
+                        lastAccessedAt: "2025-01-20T15:30:00Z"
+                        completedAt: "2025-01-20T15:30:00Z"
+                      - id: "3fe54d89-c6b7-4d8e-9f0a-1b2c3d4e5f6a"
+                        courseId: "pack_level_en_a2"
+                        status: "in_progress"
+                        progressPercentage: 65
+                        lessonsCompleted: 13
+                        lessonsTotal: 20
+                        result: null
+                        score: null
+                        learningDuration: 0
+                        startedAt: "2025-01-18T09:00:00Z"
+                        lastAccessedAt: "2025-01-20T18:00:00Z"
+                        completedAt: null
+                      - id: "5ba76f01-e7d8-4f9a-0b1c-2d3e4f5a6b7c"
+                        courseId: "pack_level_fr_a1"
+                        status: "completed"
+                        progressPercentage: 100
+                        lessonsCompleted: 18
+                        lessonsTotal: 18
+                        result: "pass"
+                        score: 78
+                        learningDuration: 950
+                        startedAt: "2025-01-12T14:00:00Z"
+                        lastAccessedAt: "2025-01-17T11:20:00Z"
+                        completedAt: "2025-01-17T11:20:00Z"
+                    pagination:
+                      page: 1
+                      limit: 25
+                      total: 3
+                      totalPages: 1
+                      hasNext: false
+                      hasPrevious: false
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  # Live Lessons
+  /live-lessons:
+    get:
+      summary: List all live lessons (lean)
+      operationId: listLiveLessons
+      description: |
+        Retrieve a paginated list of all live lesson records across all users.
+        Use for reporting, analytics, and cross-user lesson monitoring.
+
+        **PoC — lean contract:** This path omits `type` (group/private) and `level` (CEFR)
+        on each record, and does not offer `type` or `level` query filters. The upstream
+        platform does not reliably capture or store those attributes; this shape matches what
+        an integration could safely depend on in design discussions.
+
+        **Lean vs enriched:** There is **no aggregated `summary`** block (status totals across
+        the filtered result set). That **enriched** capability is reserved for **detailed**
+        endpoints, which represent the ideal product shape for dashboards and reporting.
+
+        **Query Parameters:**
+        - `page`, `limit`: Control pagination (default: page 1, limit 25, max 100)
+        - `sort`: Order results by field (e.g., "scheduledAt:desc")
+        - `institutionUserId`: Filter by specific institution user UUID
+        - `userEmail`: Filter by user email address
+        - `language`: Filter by language code (e.g., "ES", "FR", "EN")
+        - `status`: Filter by "pending", "completed", "cancelled", or "missed"
+        - `dateFrom`: Filter lessons from this date (ISO 8601)
+        - `dateTo`: Filter lessons up to this date (ISO 8601)
+
+        **Response Structure:**
+        - `data`: Array of LiveLessonLean objects (includes institutionUserId since this is cross-user list)
+        - `pagination`: Metadata including page, limit, total, totalPages
+
+        **Ideal / enriched variant:** For illustrative `type` and `level` plus **aggregated
+        `summary`**, see `GET /live-lessons-detailed`.
+
+        **Lesson Duration:**
+        Each live lesson is fixed at 45 minutes. Total minutes = number of lessons * 45.
+
+        **Authentication:** Required (Bearer token)
+
+        **Common Use Cases:**
+        - Report on completed lessons (200): `GET /live-lessons?status=completed`
+        - Track specific user (200): `GET /live-lessons?institutionUserId={uuid}`
+        - Find lessons by language (200): `GET /live-lessons?language=ES`
+        - Find lessons in date range (200): `GET /live-lessons?dateFrom=2025-01-01&dateTo=2025-01-31`
+        - Combine filters (200): `GET /live-lessons?status=completed&language=FR`
+        - Empty result set (200): Query with no matches returns `data: []`
+        - Invalid parameters (400): Incorrect parameter types or values
+        - Missing authentication (401): Request without valid Bearer token
+
+        **Related Endpoints:**
+        - Detailed list with enriched `summary`: `GET /live-lessons-detailed`
+        - User lean (no enriched `summary`): `GET /users/{institutionUserId}/live-lessons`
+        - Get user details: `GET /users/{institutionUserId}`
+      tags:
+        - Live Lessons
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Sort"
+        - name: institutionUserId
+          in: query
+          description: Filter by institution user ID
+          schema:
+            type: string
+            format: uuid
+        - name: userEmail
+          in: query
+          description: Filter by user email
+          schema:
+            type: string
+            format: email
+        - name: language
+          in: query
+          description: Filter by lesson language
+          schema:
+            type: string
+        - name: status
+          in: query
+          description: Filter by lesson status
+          schema:
+            type: string
+            enum: [pending, completed, cancelled, missed]
+        - name: dateFrom
+          in: query
+          description: Filter lessons from this date (ISO 8601)
+          schema:
+            type: string
+            format: date-time
+        - name: dateTo
+          in: query
+          description: Filter lessons up to this date (ISO 8601)
+          schema:
+            type: string
+            format: date-time
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/LiveLessonLean"
+                  pagination:
+                    $ref: "#/components/schemas/Pagination"
+              examples:
+                default:
+                  value:
+                    data:
+                      - id: "68235e4f-fa67-27e9-d64d-8339a1b2c3d4"
+                        institutionUserId: "f1e2d3c4-b5a6-4c7d-8e9f-0a1b2c3d4e5f"
+                        userEmail: "john.doe@example.com"
+                        language: "ES"
+                        status: "completed"
+                        bookedAt: "2025-01-15T08:00:00Z"
+                        scheduledAt: "2025-01-20T10:00:00Z"
+                      - id: "78246e5f-fb78-38fa-e75e-9440b2c3d4e5"
+                        institutionUserId: "f1e2d3c4-b5a6-4c7d-8e9f-0a1b2c3d4e5f"
+                        userEmail: "john.doe@example.com"
+                        language: "FR"
+                        status: "pending"
+                        bookedAt: "2025-01-18T09:00:00Z"
+                        scheduledAt: "2025-01-25T14:30:00Z"
+                      - id: "88257f6a-ac89-49ab-f86f-0551c3d4e5f6"
+                        institutionUserId: "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d"
+                        userEmail: "jane.smith@example.com"
+                        language: "EN"
+                        status: "missed"
+                        bookedAt: "2025-01-10T07:00:00Z"
+                        scheduledAt: "2025-01-19T16:00:00Z"
+                    pagination:
+                      page: 1
+                      limit: 25
+                      total: 150
+                      totalPages: 6
+                      hasNext: true
+                      hasPrevious: false
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /users/{institutionUserId}/live-lessons:
+    get:
+      summary: Get user live lessons (lean)
+      operationId: listUserLiveLessons
+      description: |
+        Retrieve paginated live lesson records for a specific user with lightweight user
+        context. **Lean:** no **enriched** aggregated `summary` (status totals across the
+        filtered set)—only `user`, `data`, and `pagination`. For the **ideal** shape with
+        `summary` plus illustrative `type` / `level`, use `GET /users/{institutionUserId}/live-lessons-detailed`.
+
+        **PoC — current contract:** Lesson records omit `type` and `level`; see
+        `GET /users/{institutionUserId}/live-lessons-detailed` for an illustrative shape
+        that includes those fields (not reliably sourced).
+
+        **Path Parameters:**
+        - `institutionUserId`: Institution-specific user identifier (UUID format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)
+
+        **Query Parameters:**
+        - `page`, `limit`: Control pagination (default: page 1, limit 25, max 100)
+        - `sort`: Order results by field (e.g., "scheduledAt:desc")
+        - `language`: Filter by language code
+        - `status`: Filter by "pending", "completed", "cancelled", or "missed"
+        - `dateFrom`: Filter lessons from this date (ISO 8601)
+        - `dateTo`: Filter lessons up to this date (ISO 8601)
+
+        **Response Structure:**
+        - `user`: Lightweight user context (institutionUserId, email) — once at top level
+        - `data`: Array of LiveLessonLean rows without institutionUserId and userEmail (same fields as lean cross-user list items, minus redundant user columns)
+        - `pagination`: Metadata including page, limit, total, totalPages
+
+        **Key Design:**
+        institutionUserId and userEmail are excluded from each lesson row because they appear
+        on `user`. Aggregated counts are intentionally omitted here to keep the lean surface
+        minimal; derive counts from `data` if needed, or use the detailed user endpoint.
+
+        **Authentication:** Required (Bearer token)
+
+        **Common Use Cases:**
+        - List a user's live lessons (200): `GET /users/{institutionUserId}/live-lessons`
+        - Track individual student live lessons (200): Paginate through `data`
+        - Filter user's completed lessons (200): `GET /users/{institutionUserId}/live-lessons?status=completed`
+        - Find pending lessons (200): `GET /users/{institutionUserId}/live-lessons?status=pending`
+        - Filter by language (200): `GET /users/{institutionUserId}/live-lessons?language=ES`
+        - Empty lessons (200): User with no live lessons returns `data: []`
+        - User not found (404): Invalid or non-existent user ID
+        - Invalid parameters (400): Incorrect parameter types or values
+        - Missing authentication (401): Request without valid Bearer token
+
+        **Related Endpoints:**
+        - Detailed (summary + illustrative type/level): `GET /users/{institutionUserId}/live-lessons-detailed`
+        - Get user details: `GET /users/{institutionUserId}`
+        - List all users: `GET /users`
+        - Alternative lean list (includes institutionUserId in each record): `GET /live-lessons?institutionUserId={institutionUserId}`
+      tags:
+        - Live Lessons
+      parameters:
+        - $ref: "#/components/parameters/InstitutionUserId"
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Sort"
+        - name: language
+          in: query
+          description: Filter by lesson language
+          schema:
+            type: string
+        - name: status
+          in: query
+          description: Filter by lesson status
+          schema:
+            type: string
+            enum: [pending, completed, cancelled, missed]
+        - name: dateFrom
+          in: query
+          description: Filter lessons from this date (ISO 8601)
+          schema:
+            type: string
+            format: date-time
+        - name: dateTo
+          in: query
+          description: Filter lessons up to this date (ISO 8601)
+          schema:
+            type: string
+            format: date-time
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserLiveLessonsLeanResponse"
+              examples:
+                default:
+                  value:
+                    user:
+                      institutionUserId: "f1e2d3c4-b5a6-4c7d-8e9f-0a1b2c3d4e5f"
+                      email: "john.doe@example.com"
+                    data:
+                      - id: "68235e4f-fa67-27e9-d64d-8339a1b2c3d4"
+                        language: "ES"
+                        status: "completed"
+                        scheduledAt: "2025-01-20T10:00:00Z"
+                        bookedAt: "2025-01-15T08:00:00Z"
+                      - id: "78246e5f-fb78-38fa-e75e-9440b2c3d4e5"
+                        language: "FR"
+                        status: "pending"
+                        scheduledAt: "2025-01-25T14:30:00Z"
+                        bookedAt: "2025-01-18T09:00:00Z"
+                      - id: "88257f6a-ac89-49ab-f86f-0551c3d4e5f6"
+                        language: "EN"
+                        status: "missed"
+                        scheduledAt: "2025-01-19T16:00:00Z"
+                        bookedAt: "2025-01-10T07:00:00Z"
+                    pagination:
+                      page: 1
+                      limit: 25
+                      total: 12
+                      totalPages: 1
+                      hasNext: false
+                      hasPrevious: false
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /live-lessons-detailed:
+    get:
+      summary: List all live lessons (detailed, illustrative)
+      operationId: listLiveLessonsDetailed
+      description: |
+        **Ideal / enriched PoC (illustrative).** Same cross-user list as `GET /live-lessons`,
+        plus **aggregated `summary`** (status counts for **all** lessons matching the applied
+        filters—not only the current page). Each row includes illustrative `type` (group/private)
+        and `level` (CEFR); this endpoint supports filtering by `type` and `level`.
+
+        The backing platform does **not** reliably capture or store `type` and `level`. In a
+        real deployment, values could be missing, inconsistent, or misleading. Use
+        `GET /live-lessons` for the **lean** contract. This path exists for internal capability
+        and product discussion.
+
+        Retrieve a paginated list of all live lesson records across all users.
+        Use for reporting, analytics, and cross-user lesson monitoring.
+
+        **Query Parameters:**
+        - `page`, `limit`: Control pagination (default: page 1, limit 25, max 100)
+        - `sort`: Order results by field (e.g., "scheduledAt:desc")
+        - `institutionUserId`: Filter by specific institution user UUID
+        - `userEmail`: Filter by user email address
+        - `type`: Filter by "group" or "private"
+        - `language`: Filter by language code (e.g., "ES", "FR", "EN")
+        - `level`: Filter by CEFR level (A1, A2, B1, B2, C1)
+        - `status`: Filter by "pending", "completed", "cancelled", or "missed"
+        - `dateFrom`: Filter lessons from this date (ISO 8601)
+        - `dateTo`: Filter lessons up to this date (ISO 8601)
+
+        **Response Structure:**
+        - `summary`: **Enriched** aggregated statistics for **all** lessons matching the query (same filter semantics as `data`; not scoped to the current page of rows)
+        - `data`: Array of LiveLesson objects (includes institutionUserId since this is cross-user list)
+        - `pagination`: Metadata including page, limit, total, totalPages
+
+        **Live Lesson Fields Include:**
+        - Identity: id, institutionUserId, userEmail
+        - Lesson details: type (group/private), language, level
+        - Status: pending/completed/cancelled/missed
+        - Timestamps: bookedAt, scheduledAt
+
+        **Lesson Duration:**
+        Each live lesson is fixed at 45 minutes. Total minutes = number of lessons * 45.
+
+        **Design Philosophy:**
+        - **Enriched** responses pair paginated rows with **`summary`** so dashboards can show totals without walking every page.
+        - `type` / `level` on each row remain illustrative until upstream data is trustworthy.
+
+        **Authentication:** Required (Bearer token)
+
+        **Common Use Cases:**
+        - Report on completed lessons (200): `GET /live-lessons-detailed?status=completed`
+        - Track specific user (200): `GET /live-lessons-detailed?institutionUserId={uuid}`
+        - Find lessons by language (200): `GET /live-lessons-detailed?language=ES`
+        - Filter by lesson type (200): `GET /live-lessons-detailed?type=private`
+        - Find lessons in date range (200): `GET /live-lessons-detailed?dateFrom=2025-01-01&dateTo=2025-01-31`
+        - Combine filters (200): `GET /live-lessons-detailed?status=completed&language=FR`
+        - Empty result set (200): Query with no matches returns `data: []`
+        - Invalid parameters (400): Incorrect parameter types or values
+        - Missing authentication (401): Request without valid Bearer token
+
+        **Related Endpoints:**
+        - Lean list (no enriched `summary`): `GET /live-lessons`
+        - User detailed (enriched `summary` + illustrative rows): `GET /users/{institutionUserId}/live-lessons-detailed`
+        - Get user details: `GET /users/{institutionUserId}`
+      tags:
+        - Live Lessons
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Sort"
+        - name: institutionUserId
+          in: query
+          description: Filter by institution user ID
+          schema:
+            type: string
+            format: uuid
+        - name: userEmail
+          in: query
+          description: Filter by user email
+          schema:
+            type: string
+            format: email
+        - name: type
+          in: query
+          description: Filter by lesson type
+          schema:
+            type: string
+            enum: [group, private]
+        - name: language
+          in: query
+          description: Filter by lesson language
+          schema:
+            type: string
+        - name: level
+          in: query
+          description: Filter by CEFR level
+          schema:
+            type: string
+            enum: [A1, A2, B1, B2, C1]
+        - name: status
+          in: query
+          description: Filter by lesson status
+          schema:
+            type: string
+            enum: [pending, completed, cancelled, missed]
+        - name: dateFrom
+          in: query
+          description: Filter lessons from this date (ISO 8601)
+          schema:
+            type: string
+            format: date-time
+        - name: dateTo
+          in: query
+          description: Filter lessons up to this date (ISO 8601)
+          schema:
+            type: string
+            format: date-time
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LiveLessonsDetailedListResponse"
+              examples:
+                default:
+                  value:
+                    summary:
+                      totalLessonsPending: 45
+                      totalLessonsCompleted: 72
+                      totalLessonsCancelled: 18
+                      totalLessonsMissed: 15
+                    data:
+                      - id: "68235e4f-fa67-27e9-d64d-8339a1b2c3d4"
+                        institutionUserId: "f1e2d3c4-b5a6-4c7d-8e9f-0a1b2c3d4e5f"
+                        userEmail: "john.doe@example.com"
+                        type: "group"
+                        language: "ES"
+                        level: "A1"
+                        status: "completed"
+                        bookedAt: "2025-01-15T08:00:00Z"
+                        scheduledAt: "2025-01-20T10:00:00Z"
+                      - id: "78246e5f-fb78-38fa-e75e-9440b2c3d4e5"
+                        institutionUserId: "f1e2d3c4-b5a6-4c7d-8e9f-0a1b2c3d4e5f"
+                        userEmail: "john.doe@example.com"
+                        type: "private"
+                        language: "FR"
+                        level: "B1"
+                        status: "pending"
+                        bookedAt: "2025-01-18T09:00:00Z"
+                        scheduledAt: "2025-01-25T14:30:00Z"
+                      - id: "88257f6a-ac89-49ab-f86f-0551c3d4e5f6"
+                        institutionUserId: "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d"
+                        userEmail: "jane.smith@example.com"
+                        type: "group"
+                        language: "EN"
+                        level: "A2"
+                        status: "missed"
+                        bookedAt: "2025-01-10T07:00:00Z"
+                        scheduledAt: "2025-01-19T16:00:00Z"
+                    pagination:
+                      page: 1
+                      limit: 25
+                      total: 150
+                      totalPages: 6
+                      hasNext: true
+                      hasPrevious: false
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /users/{institutionUserId}/live-lessons-detailed:
+    get:
+      summary: Get user live lessons (detailed, illustrative)
+      operationId: listUserLiveLessonsDetailed
+      description: |
+        **Ideal / enriched PoC (illustrative).** Same pagination model as the lean user path,
+        but adds **aggregated `summary`** (status totals for **all** of this user's lessons
+        matching the applied filters—not only the current page) and illustrative `type` /
+        `level` on each row with matching query filters.
+
+        `type` and `level` are **not** reliably available from the platform; prefer the lean
+        endpoint for a minimal, realistic integration contract.
+
+        Retrieve live lesson records for a specific user with user context; **enriched**
+        summary is provided once at the top level.
+
+        **Path Parameters:**
+        - `institutionUserId`: Institution-specific user identifier (UUID format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)
+
+        **Query Parameters:**
+        - `page`, `limit`: Control pagination (default: page 1, limit 25, max 100)
+        - `sort`: Order results by field (e.g., "scheduledAt:desc")
+        - `type`: Filter by "group" or "private"
+        - `language`: Filter by language code
+        - `level`: Filter by CEFR level (A1, A2, B1, B2, C1)
+        - `status`: Filter by "pending", "completed", "cancelled", or "missed"
+        - `dateFrom`: Filter lessons from this date (ISO 8601)
+        - `dateTo`: Filter lessons up to this date (ISO 8601)
+
+        **Response Structure:**
+        - `user`: Lightweight user context (institutionUserId, email) - provided once at top level
+        - `summary`: **Enriched** aggregated statistics for **all** of this user's lessons matching the query (not limited to the current page of `data`)
+        - `data`: Array of LiveLesson objects WITHOUT institutionUserId and userEmail fields (eliminates redundancy)
+        - `pagination`: Metadata including page, limit, total, totalPages
+
+        **Summary Statistics Include:**
+        - `totalLessonsPending`: Count of lessons with status "pending"
+        - `totalLessonsCompleted`: Count of lessons with status "completed"
+        - `totalLessonsCancelled`: Count of lessons with status "cancelled". Lessons cancelled within the terms of the cancellation policy. Credit is restored to the user's account
+        - `totalLessonsMissed`: Count of lessons with status "missed". Lessons missed in contravention of the cancellation policy. Credit is not restored to the user's account
+
+        **Key Design:**
+        **Enriched** `summary` and `user` are provided once at the top level instead of repeating
+        derived totals or user identity on every row. institutionUserId and userEmail are omitted
+        from each lesson because they appear on `user`.
+
+        **Design Philosophy:**
+        - **Ideal / enriched** user contract: `summary` gives full-filtered-set status totals; rows add illustrative `type` / `level` for PoC debate.
+        - Enables dashboard metrics (e.g. learning time ≈ totalLessonsCompleted × 45 minutes) without scanning every page of `data`.
+
+        **Authentication:** Required (Bearer token)
+
+        **Common Use Cases:**
+        - View user's live lesson dashboard (200): `GET /users/{institutionUserId}/live-lessons-detailed`
+        - Track individual student live lessons (200): Monitor all live lessons for this user
+        - Generate user live lesson report (200): Export data with summary statistics
+        - Filter user's completed lessons (200): `GET /users/{institutionUserId}/live-lessons-detailed?status=completed`
+        - Find pending lessons (200): `GET /users/{institutionUserId}/live-lessons-detailed?status=pending`
+        - Filter by language (200): `GET /users/{institutionUserId}/live-lessons-detailed?language=ES`
+        - Empty lessons (200): User with no live lessons returns `data: []` and summary with zeros
+        - User not found (404): Invalid or non-existent user ID
+        - Invalid parameters (400): Incorrect parameter types or values
+        - Missing authentication (401): Request without valid Bearer token
+
+        **Related Endpoints:**
+        - Lean user live lessons: `GET /users/{institutionUserId}/live-lessons`
+        - Get user details: `GET /users/{institutionUserId}`
+        - List all users: `GET /users`
+        - Alternative detailed list (includes institutionUserId in each record): `GET /live-lessons-detailed?institutionUserId={institutionUserId}`
+      tags:
+        - Live Lessons
+      parameters:
+        - $ref: "#/components/parameters/InstitutionUserId"
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Sort"
+        - name: type
+          in: query
+          description: Filter by lesson type
+          schema:
+            type: string
+            enum: [group, private]
+        - name: language
+          in: query
+          description: Filter by lesson language
+          schema:
+            type: string
+        - name: level
+          in: query
+          description: Filter by CEFR level
+          schema:
+            type: string
+            enum: [A1, A2, B1, B2, C1]
+        - name: status
+          in: query
+          description: Filter by lesson status
+          schema:
+            type: string
+            enum: [pending, completed, cancelled, missed]
+        - name: dateFrom
+          in: query
+          description: Filter lessons from this date (ISO 8601)
+          schema:
+            type: string
+            format: date-time
+        - name: dateTo
+          in: query
+          description: Filter lessons up to this date (ISO 8601)
+          schema:
+            type: string
+            format: date-time
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserLiveLessonsResponse"
+              examples:
+                default:
+                  value:
+                    user:
+                      institutionUserId: "f1e2d3c4-b5a6-4c7d-8e9f-0a1b2c3d4e5f"
+                      email: "john.doe@example.com"
+                    summary:
+                      totalLessonsPending: 2
+                      totalLessonsCompleted: 6
+                      totalLessonsCancelled: 2
+                      totalLessonsMissed: 2
+                    data:
+                      - id: "68235e4f-fa67-27e9-d64d-8339a1b2c3d4"
+                        type: "group"
+                        language: "ES"
+                        level: "A1"
+                        status: "completed"
+                        scheduledAt: "2025-01-20T10:00:00Z"
+                        bookedAt: "2025-01-15T08:00:00Z"
+                      - id: "78246e5f-fb78-38fa-e75e-9440b2c3d4e5"
+                        type: "private"
+                        language: "FR"
+                        level: "B1"
+                        status: "pending"
+                        scheduledAt: "2025-01-25T14:30:00Z"
+                        bookedAt: "2025-01-18T09:00:00Z"
+                      - id: "88257f6a-ac89-49ab-f86f-0551c3d4e5f6"
+                        type: "group"
+                        language: "EN"
+                        level: "A2"
+                        status: "missed"
+                        scheduledAt: "2025-01-19T16:00:00Z"
+                        bookedAt: "2025-01-10T07:00:00Z"
+                    pagination:
+                      page: 1
+                      limit: 25
+                      total: 12
+                      totalPages: 1
+                      hasNext: false
+                      hasPrevious: false
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  # Certificates
+  /certificates:
+    get:
+      summary: List all certificates
+      operationId: listCertificates
+      description: |
+        Retrieve a paginated list of all certificate records across all users.
+        Use for reporting, analytics, and cross-user certificate monitoring.
+
+        **Query Parameters:**
+        - `page`, `limit`: Control pagination (default: page 1, limit 25, max 100)
+        - `sort`: Order results by field (e.g., "issuedAt:desc")
+        - `institutionUserId`: Filter by specific institution user UUID
+        - `userEmail`: Filter by user email address
+        - `courseId`: Filter by specific course ID
+        - `language`: Filter by language code (e.g., "ES", "FR", "EN")
+        - `level`: Filter by CEFR level (A1, A2, B1, B2, C1)
+        - `status`: Filter by "active", "expired", or "revoked"
+        - `dateFrom`: Filter certificates issued from this date (ISO 8601)
+        - `dateTo`: Filter certificates issued up to this date (ISO 8601)
+
+        **Response Structure:**
+        - `data`: Array of Certificate objects (includes institutionUserId since this is cross-user list)
+        - `pagination`: Metadata including page, limit, total, totalPages
+
+        **Note:** Multiple certificates are allowed for the same user and course combination. Each certificate
+        represents a separate issuance with its own immutable grade. Users can retake course assessments and
+        receive new certificates with different grades. Filtering by `institutionUserId` and `courseId` together will
+        return all certificates for that user/course combination.
+
+        **Certificate Fields Include:**
+        - Identity: id, institutionUserId, userEmail, courseId, progressId
+        - Certificate details: title, language, level
+        - Assessment: grade (immutable snapshot from completion score)
+        - Status: status (active/expired/revoked)
+        - Dates: issuedAt, expiresAt (nullable), revokedAt (nullable)
+        - Metadata: url, providerId, thumbnailUrl (optional)
+
+        **Authentication:** Required (Bearer token)
+
+        **Common Use Cases:**
+        - Report on all certificates (200): `GET /certificates`
+        - Track specific user (200): `GET /certificates?institutionUserId={uuid}`
+        - Find certificates by language (200): `GET /certificates?language=ES`
+        - Filter by CEFR level (200): `GET /certificates?level=B1`
+        - Find active certificates (200): `GET /certificates?status=active`
+        - Find expired certificates (200): `GET /certificates?status=expired`
+        - Filter by course (200): `GET /certificates?courseId=pack_level_en_a1`
+        - Track multiple issuances (200): `GET /certificates?institutionUserId={uuid}&courseId={courseId}` - Returns all certificates for user/course, showing multiple issuances/retakes
+        - Find certificates in date range (200): `GET /certificates?dateFrom=2025-01-01&dateTo=2025-01-31`
+        - Combine filters (200): `GET /certificates?status=active&language=FR`
+        - Empty result set (200): Query with no matches returns `data: []`
+        - Invalid parameters (400): Incorrect parameter types or values
+        - Missing authentication (401): Request without valid Bearer token
+
+        **Related Endpoints:**
+        - Get all certificates for a user (with summary): `GET /users/{institutionUserId}/certificates`
+        - Get user details: `GET /users/{institutionUserId}`
+        - Get course details: `GET /courses/{id}`
+      tags:
+        - Certificates
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Sort"
+        - name: institutionUserId
+          in: query
+          description: Filter by institution user ID
+          schema:
+            type: string
+            format: uuid
+        - name: userEmail
+          in: query
+          description: Filter by user email
+          schema:
+            type: string
+            format: email
+        - name: courseId
+          in: query
+          description: Filter by course ID
+          schema:
+            type: string
+        - name: language
+          in: query
+          description: Filter by certificate language
+          schema:
+            type: string
+            enum: [EN, ES, FR, DE, IT, PT, NL, JA, KO, PL, RU, TR, ZH, AR]
+        - name: level
+          in: query
+          description: Filter by CEFR level
+          schema:
+            type: string
+            enum: [A1, A2, B1, B2, C1]
+        - name: status
+          in: query
+          description: Filter by certificate status
+          schema:
+            type: string
+            enum: [active, expired, revoked]
+        - name: dateFrom
+          in: query
+          description: Filter certificates issued from this date (ISO 8601)
+          schema:
+            type: string
+            format: date-time
+        - name: dateTo
+          in: query
+          description: Filter certificates issued up to this date (ISO 8601)
+          schema:
+            type: string
+            format: date-time
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Certificate"
+                  pagination:
+                    $ref: "#/components/schemas/Pagination"
+              examples:
+                default:
+                  value:
+                    data:
+                      - id: "68235e4f-fa67-27e9-d64d-8339a1b2c3d4"
+                        institutionUserId: "f1e2d3c4-b5a6-4c7d-8e9f-0a1b2c3d4e5f"
+                        userEmail: "john.doe@example.com"
+                        courseId: "pack_level_en_b2"
+                        progressId: "2ed43c78-b5a6-4c7d-8e9f-0a1b2c3d4e5f"
+                        title: "English Upper Intermediate (B2)"
+                        status: "active"
+                        language: "EN"
+                        level: "B2"
+                        grade: "A"
+                        providerId: "Busuu Premium Language Learning"
+                        url: "https://certificates.busuu.com/68235e4f-fa67-27e9-d64d-8339a1b2c3d4"
+                        thumbnailUrl: "https://cdn.busuu.com/certificates/en-b2-thumbnail.jpg"
+                        issuedAt: "2025-01-20T10:00:00Z"
+                        expiresAt: null
+                        revokedAt: null
+                      - id: "78246e5f-fb78-38fa-e75e-9440b2c3d4e5"
+                        institutionUserId: "f1e2d3c4-b5a6-4c7d-8e9f-0a1b2c3d4e5f"
+                        userEmail: "john.doe@example.com"
+                        courseId: "pack_level_es_a1"
+                        progressId: "3fe54d89-c6b7-4d8e-9f0a-1b2c3d4e5f6a"
+                        title: "Spanish Beginner (A1)"
+                        status: "active"
+                        language: "ES"
+                        level: "A1"
+                        grade: "B+"
+                        providerId: "Busuu Premium Language Learning"
+                        url: "https://certificates.busuu.com/78246e5f-fb78-38fa-e75e-9440b2c3d4e5"
+                        thumbnailUrl: "https://cdn.busuu.com/certificates/es-a1-thumbnail.jpg"
+                        issuedAt: "2025-01-15T14:30:00Z"
+                        expiresAt: "2026-01-15T14:30:00Z"
+                        revokedAt: null
+                      - id: "88257f6a-ac89-49ab-f86f-0551c3d4e5f6"
+                        institutionUserId: "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d"
+                        userEmail: "jane.smith@example.com"
+                        courseId: "pack_level_fr_b1"
+                        progressId: "4af65e90-d7c8-4e9f-0a1b-2c3d4e5f6a7b"
+                        title: "French Intermediate (B1)"
+                        status: "expired"
+                        language: "FR"
+                        level: "B1"
+                        grade: "B"
+                        providerId: "Busuu Premium Language Learning"
+                        url: "https://certificates.busuu.com/88257f6a-ac89-49ab-f86f-0551c3d4e5f6"
+                        thumbnailUrl: null
+                        issuedAt: "2024-01-10T08:00:00Z"
+                        expiresAt: "2025-01-10T08:00:00Z"
+                        revokedAt: null
+                    pagination:
+                      page: 1
+                      limit: 25
+                      total: 150
+                      totalPages: 6
+                      hasNext: true
+                      hasPrevious: false
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /users/{institutionUserId}/certificates:
+    get:
+      summary: Get user certificates
+      operationId: listUserCertificates
+      description: |
+        Retrieve all certificate records for a specific user with user context and
+        summary statistics provided separately.
+
+        **Path Parameters:**
+        - `institutionUserId`: Institution-specific user identifier (UUID format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)
+
+        **Query Parameters:**
+        - `page`, `limit`: Control pagination (default: page 1, limit 25, max 100)
+        - `sort`: Order results by field (e.g., "issuedAt:desc")
+        - `courseId`: Filter by specific course ID
+        - `language`: Filter by language code
+        - `level`: Filter by CEFR level (A1, A2, B1, B2, C1)
+        - `status`: Filter by "active", "expired", or "revoked"
+        - `dateFrom`: Filter certificates issued from this date (ISO 8601)
+        - `dateTo`: Filter certificates issued up to this date (ISO 8601)
+
+        **Response Structure:**
+        - `user`: Lightweight user context (institutionUserId, email) - provided once at top level
+        - `summary`: Aggregated statistics for all certificates
+        - `data`: Array of Certificate objects WITHOUT institutionUserId and userEmail fields (eliminates redundancy)
+        - `pagination`: Metadata including page, limit, total, totalPages
+
+        **Note:** Multiple certificates are allowed for the same user and course combination. Each certificate
+        represents a separate issuance with its own immutable grade. Users can retake course assessments and
+        receive new certificates with different grades. Filtering by `courseId` will return all certificates
+        for that course.
+
+        **Summary Statistics Include:**
+        - `totalCertificates`: Total number of certificates
+        - `totalCertificatesActive`: Count of certificates with status "active"
+        - `totalCertificatesExpired`: Count of certificates with status "expired"
+        - `totalCertificatesRevoked`: Count of certificates with status "revoked"
+
+        **Key Design:**
+        User information and summary statistics provided once at top level instead of
+        repeated in every certificate record. This reduces payload size, improves semantic
+        clarity, and better represents that all certificates belong to this user. Both institutionUserId
+        and userEmail are excluded from individual certificate records since they are available
+        in the top-level user object.
+
+        **Authentication:** Required (Bearer token)
+
+        **Common Use Cases:**
+        - View user's certificate dashboard (200): `GET /users/{institutionUserId}/certificates`
+        - Track individual student certificates (200): Monitor all certificates for this user
+        - Track course retakes (200): `GET /users/{institutionUserId}/certificates?courseId={courseId}` - Returns all certificates for a specific course, showing multiple issuances/retakes
+        - Generate user certificate report (200): Export data with summary statistics
+        - Filter user's active certificates (200): `GET /users/{institutionUserId}/certificates?status=active`
+        - Find expired certificates (200): `GET /users/{institutionUserId}/certificates?status=expired`
+        - Filter by language (200): `GET /users/{institutionUserId}/certificates?language=ES`
+        - Filter by level (200): `GET /users/{institutionUserId}/certificates?level=B1`
+        - Empty certificates (200): User with no certificates returns `data: []` and summary with zeros
+        - User not found (404): Invalid or non-existent user ID
+        - Invalid parameters (400): Incorrect parameter types or values
+        - Missing authentication (401): Request without valid Bearer token
+
+        **Related Endpoints:**
+        - Get user details: `GET /users/{institutionUserId}`
+        - List all users: `GET /users`
+        - Alternative endpoint (includes institutionUserId in each record): `GET /certificates?institutionUserId={institutionUserId}`
+      tags:
+        - Certificates
+      parameters:
+        - $ref: "#/components/parameters/InstitutionUserId"
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Limit"
+        - $ref: "#/components/parameters/Sort"
+        - name: courseId
+          in: query
+          description: Filter by course ID
+          schema:
+            type: string
+        - name: language
+          in: query
+          description: Filter by certificate language
+          schema:
+            type: string
+            enum: [EN, ES, FR, DE, IT, PT, NL, JA, KO, PL, RU, TR, ZH, AR]
+        - name: level
+          in: query
+          description: Filter by CEFR level
+          schema:
+            type: string
+            enum: [A1, A2, B1, B2, C1]
+        - name: status
+          in: query
+          description: Filter by certificate status
+          schema:
+            type: string
+            enum: [active, expired, revoked]
+        - name: dateFrom
+          in: query
+          description: Filter certificates issued from this date (ISO 8601)
+          schema:
+            type: string
+            format: date-time
+        - name: dateTo
+          in: query
+          description: Filter certificates issued up to this date (ISO 8601)
+          schema:
+            type: string
+            format: date-time
+      responses:
+        "200":
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserCertificatesResponse"
+              examples:
+                default:
+                  value:
+                    user:
+                      institutionUserId: "f1e2d3c4-b5a6-4c7d-8e9f-0a1b2c3d4e5f"
+                      email: "john.doe@example.com"
+                    summary:
+                      totalCertificates: 5
+                      totalCertificatesActive: 3
+                      totalCertificatesExpired: 1
+                      totalCertificatesRevoked: 1
+                    data:
+                      - id: "68235e4f-fa67-27e9-d64d-8339a1b2c3d4"
+                        courseId: "pack_level_en_b2"
+                        title: "English Upper Intermediate (B2)"
+                        language: "EN"
+                        level: "B2"
+                        status: "active"
+                        issuedAt: "2025-01-20T10:00:00Z"
+                        expiresAt: null
+                        revokedAt: null
+                        url: "https://certificates.busuu.com/68235e4f-fa67-27e9-d64d-8339a1b2c3d4"
+                        providerId: "Busuu Premium Language Learning"
+                        thumbnailUrl: "https://cdn.busuu.com/certificates/en-b2-thumbnail.jpg"
+                        grade: "A"
+                      - id: "78246e5f-fb78-38fa-e75e-9440b2c3d4e5"
+                        courseId: "pack_level_es_a1"
+                        title: "Spanish Beginner (A1)"
+                        language: "ES"
+                        level: "A1"
+                        status: "active"
+                        issuedAt: "2025-01-15T14:30:00Z"
+                        expiresAt: "2026-01-15T14:30:00Z"
+                        revokedAt: null
+                        url: "https://certificates.busuu.com/78246e5f-fb78-38fa-e75e-9440b2c3d4e5"
+                        providerId: "Busuu Premium Language Learning"
+                        thumbnailUrl: "https://cdn.busuu.com/certificates/es-a1-thumbnail.jpg"
+                        grade: "B+"
+                      - id: "88257f6a-ac89-49ab-f86f-0551c3d4e5f6"
+                        courseId: "pack_level_fr_b1"
+                        title: "French Intermediate (B1)"
+                        language: "FR"
+                        level: "B1"
+                        status: "expired"
+                        issuedAt: "2024-01-10T08:00:00Z"
+                        expiresAt: "2025-01-10T08:00:00Z"
+                        revokedAt: null
+                        url: "https://certificates.busuu.com/88257f6a-ac89-49ab-f86f-0551c3d4e5f6"
+                        providerId: "Busuu Premium Language Learning"
+                        thumbnailUrl: null
+                        grade: "B"
+                    pagination:
+                      page: 1
+                      limit: 25
+                      total: 5
+                      totalPages: 1
+                      hasNext: false
+                      hasPrevious: false
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  # Utilities
+  /utilities/health:
+    get:
+      summary: API health check
+      operationId: getApiHealth
+      description: Check the health status of the API
+      tags:
+        - Utilities
+      security: []
+      responses:
+        "200":
+          description: API is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [healthy]
+                    examples: ["healthy"]
+
+                  timestamp:
+                    type: string
+                    format: date-time
+                    examples: ["2025-01-20T21:01:58Z"]
+
+                  version:
+                    type: string
+                    examples: ["0.11.0"]
+
+                  uptime:
+                    type: integer
+                    description: API uptime in seconds
+                    examples: [86400]
+
+        "503":
+          description: API is unhealthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [unhealthy]
+                    examples: ["unhealthy"]
+
+                  timestamp:
+                    type: string
+                    format: date-time
+                    examples: ["2025-01-20T21:01:58Z"]
+
+                  errors:
+                    type: array
+                    items:
+                      type: string
+                    examples:
+                      [
+                        [
+                          "Database connection failed",
+                          "External service timeout",
+                        ],
+                      ]
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from /auth/token endpoint
+
+  parameters:
+    Page:
+      name: page
+      in: query
+      description: Page number for pagination
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+        examples: [1]
+
+    Limit:
+      name: limit
+      in: query
+      description: Number of items per page
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 25
+        examples: [25]
+
+    Sort:
+      name: sort
+      in: query
+      description: Sort order (field:direction)
+      schema:
+        type: string
+        examples: ["createdAt:desc"]
+
+    InstitutionUserId:
+      name: institutionUserId
+      in: path
+      required: true
+      description: Institution-specific user identifier (UUID)
+      schema:
+        type: string
+        format: uuid
+        examples: ["f1e2d3c4-b5a6-4c7d-8e9f-0a1b2c3d4e5f"]
+
+    CourseId:
+      name: id
+      in: path
+      required: true
+      description: Course identifier
+      schema:
+        type: string
+        examples: ["pack_level_en_a1"]
+
+  schemas:
+    # Response Schemas
+    CourseListResponse:
+      type: object
+      required:
+        - provider
+        - data
+        - pagination
+      properties:
+        provider:
+          $ref: "#/components/schemas/Provider"
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Course"
+        pagination:
+          $ref: "#/components/schemas/Pagination"
+
+    CourseDetailResponse:
+      type: object
+      required:
+        - provider
+        - course
+      properties:
+        provider:
+          $ref: "#/components/schemas/Provider"
+        course:
+          $ref: "#/components/schemas/Course"
+
+    UserProgressResponse:
+      type: object
+      required:
+        - user
+        - data
+        - pagination
+      properties:
+        user:
+          $ref: "#/components/schemas/UserContext"
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProgressWithoutInstitutionUserId"
+        pagination:
+          $ref: "#/components/schemas/Pagination"
+
+    UserLiveLessonsLeanResponse:
+      type: object
+      description: |
+        User-scoped **lean** response (`GET /users/{institutionUserId}/live-lessons`). Lesson rows
+        omit `type` and `level` (not reliably sourced). Intentionally omits **enriched**
+        aggregated `summary`; use `GET /users/{institutionUserId}/live-lessons-detailed` for the
+        ideal shape (summary + illustrative fields).
+      required:
+        - user
+        - data
+        - pagination
+      properties:
+        user:
+          $ref: "#/components/schemas/UserContext"
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/LiveLessonLeanWithoutInstitutionUserId"
+        pagination:
+          $ref: "#/components/schemas/Pagination"
+
+    UserLiveLessonsResponse:
+      type: object
+      description: |
+        User-scoped **ideal / enriched** response (`GET /users/{institutionUserId}/live-lessons-detailed`).
+        Includes **aggregated `summary`** (enriched offering) and lesson rows with illustrative
+        `type` and `level` (PoC only; not reliably sourced).
+      required:
+        - user
+        - summary
+        - data
+        - pagination
+      properties:
+        user:
+          $ref: "#/components/schemas/UserContext"
+        summary:
+          $ref: "#/components/schemas/LiveLessonSummary"
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/LiveLessonWithoutInstitutionUserId"
+        pagination:
+          $ref: "#/components/schemas/Pagination"
+
+    LiveLessonsDetailedListResponse:
+      type: object
+      description: |
+        **Ideal / enriched** cross-user live lesson list (`GET /live-lessons-detailed`).
+        Includes **aggregated `summary`** plus paginated `data` rows with illustrative `type`
+        and `level`. `summary` counts reflect **all** lessons matching the request filters, not
+        only the current page.
+      required:
+        - summary
+        - data
+        - pagination
+      properties:
+        summary:
+          $ref: "#/components/schemas/LiveLessonSummary"
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/LiveLesson"
+        pagination:
+          $ref: "#/components/schemas/Pagination"
+
+    UserCertificatesResponse:
+      type: object
+      required:
+        - user
+        - summary
+        - data
+        - pagination
+      properties:
+        user:
+          $ref: "#/components/schemas/UserContext"
+        summary:
+          $ref: "#/components/schemas/CertificateSummary"
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/CertificateWithoutInstitutionUserId"
+        pagination:
+          $ref: "#/components/schemas/Pagination"
+
+    UserContext:
+      type: object
+      description: Lightweight user identification context for progress responses
+      required:
+        - institutionUserId
+        - email
+      properties:
+        institutionUserId:
+          type: string
+          format: uuid
+          description: Institution-specific user identifier
+          examples: ["f1e2d3c4-b5a6-4c7d-8e9f-0a1b2c3d4e5f"]
+
+        email:
+          type: string
+          format: email
+          description: User's email address
+          examples: ["john.doe@example.com"]
+
+    # Core Schemas
+    User:
+      type: object
+      required:
+        # 1. Primary Identifiers
+        - institutionUserId
+        - institutionId
+        # 2. Core User Attributes
+        - email
+        - username
+        - firstName
+        - lastName
+        # 3. Access & Permissions
+        - status
+        - role
+        # 4. Organisational Context
+        - department
+        - countryCode
+        - employeeId
+        - team
+        # 5. Lifecycle Timestamps
+        - registeredAt
+        - expiresAt
+        - removedAt
+        # 6. Activity Timestamps
+        - lastActiveAt
+      properties:
+        # 1. Primary Identifiers
+        institutionUserId:
+          type: string
+          format: uuid
+          description: Institution-specific user identifier. Use this ID for all Nexus API operations.
+          examples: ["f1e2d3c4-b5a6-4c7d-8e9f-0a1b2c3d4e5f"]
+
+        institutionId:
+          type: string
+          format: uuid
+          description: Institution identifier (UUID)
+          examples: ["550e8400-e29b-41d4-a716-446655440000"]
+
+        # 2. Core User Attributes
+        email:
+          type: string
+          format: email
+          description: User's email address
+          examples: ["john.doe@example.com"]
+
+        username:
+          type: [string, "null"]
+          description: User's username
+          examples: ["johnd123"]
+
+        firstName:
+          type: [string, "null"]
+          description: User's first name
+          examples: ["John"]
+
+        lastName:
+          type: [string, "null"]
+          description: User's last name
+          examples: ["Doe"]
+
+        # 3. Access & Permissions
+        status:
+          type: string
+          enum: [active, removed]
+          description: User account status
+          examples: ["active"]
+
+        role:
+          type: string
+          enum: [admin, team lead, student]
+          description: User's role/permission level
+          examples: ["admin"]
+
+        # 4. Organisational Context
+        department:
+          type: [string, "null"]
+          description: User's department within the institution
+          examples: ["Accounts"]
+
+        countryCode:
+          type: [string, "null"]
+          pattern: "^[A-Z]{2}$"
+          description: ISO 3166-1 alpha-2 country code (e.g., GB, FR, DE)
+          examples: ["FR"]
+
+        employeeId:
+          type: [string, "null"]
+          description: Employee identifier within the institution
+          examples: ["empId12345678"]
+
+        team:
+          type: [string, "null"]
+          description: User's team assignment
+          examples: ["A-team"]
+
+        # 5. Lifecycle Timestamps
+        registeredAt:
+          type: string
+          format: date-time
+          description: User account registration/provisioning timestamp. Represents when the user was created in the Busuu Nexus system.
+          examples: ["2025-01-20T21:01:58Z"]
+
+        expiresAt:
+          type: string
+          format: date-time
+          description: Account expiration timestamp
+          examples: ["2025-01-20T21:01:58Z"]
+
+        removedAt:
+          type: [string, "null"]
+          format: date-time
+          description: Account deletion timestamp
+          examples: ["2025-01-20T21:01:58Z"]
+
+        # 6. Activity Timestamps
+        lastActiveAt:
+          type: string
+          format: date-time
+          description: Last activity timestamp. Represents the most recent user interaction with the learning platform.
+          examples: ["2025-01-20T21:01:58Z"]
+
+    Course:
+      type: object
+      required:
+        # 1. Primary Identifier
+        - id
+        # 2. Core Content
+        - title
+        - description
+        - status
+        # 3. Classification
+        - language
+        - level
+        - difficulty
+        # 4. Metadata
+        - duration
+        - thumbnailUrl
+        # 5. Integration
+        - launchUrl
+        # 7. Lifecycle Timestamps
+        - createdAt
+        - publishedAt
+      properties:
+        # 1. Primary Identifier
+        id:
+          type: string
+          description: Unique course identifier
+          examples: ["pack_level_en_a1"]
+
+        # 2. Core Content
+        title:
+          type: string
+          description: Course title
+          examples: ["English A1 - Beginner"]
+
+        description:
+          type: string
+          description: Course description
+          examples: ["Complete beginner course for English language learning"]
+
+        status:
+          type: string
+          enum: [active, archived]
+          description: Course status
+          examples: ["active"]
+
+        # 3. Classification
+        language:
+          type: string
+          enum:
+            [
+              English,
+              Spanish,
+              French,
+              German,
+              Italian,
+              Portuguese,
+              Dutch,
+              Japanese,
+              Korean,
+              Polish,
+              Russian,
+              Turkish,
+              Chinese,
+              Arabic,
+            ]
+          description: Language being learned
+          examples: ["English"]
+
+        level:
+          type: string
+          enum: [A1, A2, B1, B2, C1]
+          description: CEFR language level
+          examples: ["A1"]
+
+        difficulty:
+          type: object
+          required:
+            - value
+            - label
+            - order
+          properties:
+            value:
+              type: string
+              enum:
+                [
+                  beginner,
+                  elementary,
+                  intermediate,
+                  upper_intermediate,
+                  advanced,
+                ]
+              description: Difficulty level value
+              examples: ["beginner"]
+
+            label:
+              type: string
+              description: Human-readable difficulty level
+              examples: ["Beginner"]
+
+            order:
+              type: integer
+              minimum: 1
+              maximum: 5
+              description: Difficulty order (1-5)
+              examples: [1]
+
+        # 4. Metadata
+        duration:
+          type: integer
+          minimum: 0
+          description: Course duration in minutes
+          examples: [1110]
+
+        thumbnailUrl:
+          type: string
+          format: uri
+          description: Course thumbnail image URL
+          examples: ["https://cdn.busuu.com/courses/en-a1-thumbnail.jpg"]
+
+        # 5. Integration
+        launchUrl:
+          type: string
+          format: uri
+          description: SSO URL to launch the course with templated institution and course IDs
+          examples:
+            [
+              "https://sso.busuu.com/saml/{{busuuInstitutionId}}/login?course={{courseId}}",
+            ]
+
+        # 6. Localisation (optional)
+        localisation:
+          anyOf:
+            - $ref: "#/components/schemas/Localisation"
+            - type: "null"
+          description: |
+            Optional localisation metadata and translations for course UI elements.
+            When null, only the default locale (English) is available in the root fields.
+        # 7. Lifecycle Timestamps
+        createdAt:
+          type: string
+          format: date-time
+          description: Course creation timestamp
+          examples: ["2025-01-20T21:01:58Z"]
+
+        publishedAt:
+          type: string
+          format: date-time
+          description: Course publication timestamp
+          examples: ["2025-01-20T21:01:58Z"]
+
+        updatedAt:
+          type: [string, "null"]
+          format: date-time
+          description: Last content modification timestamp (null if never updated since publication)
+          examples: ["2025-01-25T14:30:00Z"]
+
+        archivedAt:
+          type: [string, "null"]
+          format: date-time
+          description: Timestamp when course was archived (null if active)
+          examples: ["2025-12-31T23:59:59Z"]
+
+    Provider:
+      type: object
+      required:
+        - id
+        - name
+        - description
+        - logoUrl
+      properties:
+        id:
+          type: string
+          description: Provider identifier
+          examples: ["busuu"]
+
+        name:
+          type: string
+          description: Provider name
+          examples: ["Busuu"]
+
+        description:
+          type: string
+          description: Provider description
+          examples: ["Language learning platform"]
+
+        logoUrl:
+          type: string
+          format: uri
+          description: Provider logo image URL
+          examples: ["https://path/to/logo.jpg"]
+
+    Localisation:
+      type: object
+      required:
+        - defaultLocale
+        - availableLocales
+      properties:
+        defaultLocale:
+          type: string
+          pattern: "^[a-z]{2}(-[A-Z]{2})?$"
+          description: |
+            Default UI locale (ISO 639-1 language code, optionally with ISO 3166-1 region).
+            This indicates the language of the course metadata (title, description),
+            NOT the language being taught (see course.language field).
+
+            Examples:
+            - "en" - English
+            - "fr" - French
+            - "es" - Spanish
+            - "de" - German
+            - "en-GB" - British English (with region)
+            - "fr-CA" - Canadian French (with region)
+
+            Note: Root course fields (title, description) are ALWAYS in this locale.
+          examples: ["en"]
+
+        availableLocales:
+          type: array
+          items:
+            type: string
+            pattern: "^[a-z]{2}(-[A-Z]{2})?$"
+          minItems: 1
+          uniqueItems: true
+          description: |
+            List of all locales for which translations are available (including default).
+            Use this to discover what locales can be requested via the 'locale' query parameter.
+
+            If a requested locale is not in this array, the API will return the default locale
+            and clients should fallback to root fields.
+          examples: [["en", "fr", "es", "de"]]
+        translations:
+          anyOf:
+            - type: array
+              items:
+                $ref: "#/components/schemas/LocalisedCourse"
+            - type: "null"
+          description: |
+            Array of translations for non-default locales.
+            Each translation contains locale-specific values for translatable fields.
+
+            Important: This array does NOT include the default locale (those values are in root fields).
+            If this is null or empty, only the default locale is available.
+
+            Translatable fields: title, description
+            Non-translatable: id, language, level, duration, status, URLs, timestamps
+
+    LocalisedCourse:
+      type: object
+      required:
+        - locale
+      properties:
+        locale:
+          type: string
+          pattern: "^[a-z]{2}(-[A-Z]{2})?$"
+          description: |
+            Locale identifier for this translation (ISO 639-1, optionally with ISO 3166-1 region).
+            Must be different from localisation.defaultLocale.
+            Must be present in localisation.availableLocales.
+          examples: ["fr"]
+
+        title:
+          type: [string, "null"]
+          maxLength: 500
+          description: |
+            Translated course title.
+            If null, fallback to root course.title field.
+          examples: ["Anglais - Débutant A1"]
+
+        description:
+          type: [string, "null"]
+          maxLength: 2000
+          description: |
+            Translated course description.
+            If null, fallback to root course.description field.
+          examples:
+            [
+              "Comprendre et utiliser des phrases simples et des expressions quotidiennes courantes. Se présenter et présenter d'autres personnes, poser et répondre à des questions sur sa vie.",
+            ]
+
+    Progress:
+      type: object
+      required:
+        # 1. Primary Identifier
+        - id
+        # 2. Relationships
+        - institutionUserId
+        - courseId
+        # 3. Status & State
+        - status
+        # 4. Progress Metrics
+        - progressPercentage
+        - lessonsCompleted
+        - lessonsTotal
+        # 6. Lifecycle Timestamps
+        - startedAt
+        - lastAccessedAt
+      properties:
+        # 1. Primary Identifier
+        id:
+          type: string
+          format: uuid
+          description: Unique progress record identifier
+          examples: ["2ed43c78-b5a6-4c7d-8e9f-0a1b2c3d4e5f"]
+
+        # 2. Relationships
+        institutionUserId:
+          type: string
+          format: uuid
+          description: Institution user identifier (foreign key to User.institutionUserId)
+          examples: ["f1e2d3c4-b5a6-4c7d-8e9f-0a1b2c3d4e5f"]
+
+        courseId:
+          type: string
+          description: Course identifier
+          examples: ["pack_level_en_a1"]
+
+        # 3. Status & State
+        status:
+          type: string
+          enum: [in_progress, completed]
+          description: Progress status
+          examples: ["in_progress"]
+
+        # 4. Progress Metrics
+        progressPercentage:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: Progress percentage (0-100)
+          examples: [100]
+
+        lessonsCompleted:
+          type: integer
+          minimum: 0
+          description: Number of lessons completed
+          examples: [20]
+
+        lessonsTotal:
+          type: integer
+          minimum: 0
+          description: Total number of lessons in course
+          examples: [20]
+
+        learningDuration:
+          type: integer
+          minimum: 0
+          description: >
+            Total learning time in minutes.
+            - Initialized to 0 when progress record is created
+            - Populated with course.duration when status becomes 'completed'
+            - Behavior during 'in_progress' is implementation-dependent (may remain 0 or increment)
+            This field represents the standard course duration once completed,
+            not necessarily the actual time the user spent learning.
+          examples: [1110]
+
+        # 5. Completion Outcome (nullable)
+        result:
+          type: [string, "null"]
+          enum: [pass, fail]
+          description: Completion result (only when status is completed)
+          examples: ["pass"]
+
+        score:
+          type: [integer, "null"]
+          minimum: 0
+          maximum: 100
+          description: Completion score percentage
+          examples: [85]
+
+        # 6. Lifecycle Timestamps
+        startedAt:
+          type: string
+          format: date-time
+          description: When user started the course
+          examples: ["2025-01-15T10:00:00Z"]
+
+        lastAccessedAt:
+          type: string
+          format: date-time
+          description: Last activity timestamp
+          examples: ["2025-01-20T21:01:58Z"]
+
+        completedAt:
+          type: [string, "null"]
+          format: date-time
+          description: When course was completed (null if not completed)
+          examples: ["2025-01-20T15:30:00Z"]
+
+    ProgressWithoutInstitutionUserId:
+      type: object
+      description: Progress record without institutionUserId field (used in user-specific progress responses where user context is provided separately)
+      required:
+        # 1. Primary Identifier
+        - id
+        # 2. Relationships
+        - courseId
+        # 3. Status & State
+        - status
+        # 4. Progress Metrics
+        - progressPercentage
+        - lessonsCompleted
+        - lessonsTotal
+        # 6. Lifecycle Timestamps
+        - startedAt
+        - lastAccessedAt
+      properties:
+        # 1. Primary Identifier
+        id:
+          type: string
+          format: uuid
+          description: Unique progress record identifier
+          examples: ["2ed43c78-b5a6-4c7d-8e9f-0a1b2c3d4e5f"]
+
+        # 2. Relationships
+        courseId:
+          type: string
+          description: Course identifier
+          examples: ["pack_level_en_a1"]
+
+        # 3. Status & State
+        status:
+          type: string
+          enum: [in_progress, completed]
+          description: Progress status
+          examples: ["in_progress"]
+
+        # 4. Progress Metrics
+        progressPercentage:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: Progress percentage (0-100)
+          examples: [100]
+
+        lessonsCompleted:
+          type: integer
+          minimum: 0
+          description: Number of lessons completed
+          examples: [20]
+
+        lessonsTotal:
+          type: integer
+          minimum: 0
+          description: Total number of lessons in course
+          examples: [20]
+
+        learningDuration:
+          type: integer
+          minimum: 0
+          description: >
+            Total learning time in minutes.
+            - Initialized to 0 when progress record is created
+            - Populated with course.duration when status becomes 'completed'
+            - Behavior during 'in_progress' is implementation-dependent (may remain 0 or increment)
+            This field represents the standard course duration once completed,
+            not necessarily the actual time the user spent learning.
+          examples: [1110]
+
+        # 5. Completion Outcome (nullable)
+        result:
+          type: [string, "null"]
+          enum: [pass, fail]
+          description: Completion result (only when status is completed)
+          examples: ["pass"]
+
+        score:
+          type: [integer, "null"]
+          minimum: 0
+          maximum: 100
+          description: Completion score percentage
+          examples: [85]
+
+        # 6. Lifecycle Timestamps
+        startedAt:
+          type: string
+          format: date-time
+          description: When user started the course
+          examples: ["2025-01-15T10:00:00Z"]
+
+        lastAccessedAt:
+          type: string
+          format: date-time
+          description: Last activity timestamp
+          examples: ["2025-01-20T21:01:58Z"]
+
+        completedAt:
+          type: [string, "null"]
+          format: date-time
+          description: When course was completed (null if not completed)
+          examples: ["2025-01-20T15:30:00Z"]
+
+    LiveLessonSummary:
+      type: object
+      description: |
+        **Enriched** aggregated status counts for a live-lesson result set. On user detailed
+        endpoints, counts are for **all** of that user's lessons matching the query filters; on
+        `GET /live-lessons-detailed`, counts are for **all** lessons matching the cross-user
+        query filters (in both cases, not limited to the current page of `data`).
+      required:
+        - totalLessonsPending
+        - totalLessonsCompleted
+        - totalLessonsCancelled
+        - totalLessonsMissed
+      properties:
+        totalLessonsPending:
+          type: integer
+          minimum: 0
+          description: Count of lessons with status "pending"
+          examples: [2]
+
+        totalLessonsCompleted:
+          type: integer
+          minimum: 0
+          description: Count of lessons with status "completed"
+          examples: [6]
+
+        totalLessonsCancelled:
+          type: integer
+          minimum: 0
+          description: Count of lessons with status "cancelled"
+          examples: [2]
+
+        totalLessonsMissed:
+          type: integer
+          minimum: 0
+          description: Count of lessons with status "missed"
+          examples: [2]
+
+    LiveLessonLean:
+      type: object
+      description: |
+        Live lesson for **lean** list endpoints (`GET /live-lessons`). Omits `type` (group/private)
+        and `level` (CEFR) because the platform does not reliably capture or store them.
+      required:
+        - id
+        - institutionUserId
+        - userEmail
+        - language
+        - status
+        - bookedAt
+        - scheduledAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique live lesson identifier
+          examples: ["68235e4f-fa67-27e9-d64d-8339a1b2c3d4"]
+
+        institutionUserId:
+          type: string
+          format: uuid
+          description: Institution user identifier (foreign key to User.institutionUserId)
+          examples: ["f1e2d3c4-b5a6-4c7d-8e9f-0a1b2c3d4e5f"]
+
+        userEmail:
+          type: string
+          format: email
+          description: User's email address
+          examples: ["john.doe@example.com"]
+
+        language:
+          type: string
+          enum: [EN, ES, FR, DE, IT, PT, NL, JA, KO, PL, RU, TR, ZH, AR]
+          description: Language code for the lesson
+          examples: ["ES"]
+
+        status:
+          type: string
+          enum: [pending, completed, cancelled, missed]
+          description: Status of the live lesson
+          examples: ["completed"]
+
+        bookedAt:
+          type: string
+          format: date-time
+          description: When the lesson was booked (user action timestamp)
+          examples: ["2025-01-15T08:00:00Z"]
+
+        scheduledAt:
+          type: string
+          format: date-time
+          description: Date and time when the lesson occurs or occurred
+          examples: ["2025-01-20T10:00:00Z"]
+
+    LiveLessonLeanWithoutInstitutionUserId:
+      type: object
+      description: |
+        Lean live lesson row for user-centric responses (`GET /users/{institutionUserId}/live-lessons`).
+        Omits institutionUserId, userEmail, `type`, and `level`.
+      required:
+        - id
+        - language
+        - status
+        - bookedAt
+        - scheduledAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique live lesson identifier
+          examples: ["68235e4f-fa67-27e9-d64d-8339a1b2c3d4"]
+
+        language:
+          type: string
+          enum: [EN, ES, FR, DE, IT, PT, NL, JA, KO, PL, RU, TR, ZH, AR]
+          description: Language code for the lesson
+          examples: ["ES"]
+
+        status:
+          type: string
+          enum: [pending, completed, cancelled, missed]
+          description: Status of the live lesson
+          examples: ["completed"]
+
+        bookedAt:
+          type: string
+          format: date-time
+          description: When the lesson was booked (user action timestamp)
+          examples: ["2025-01-15T08:00:00Z"]
+
+        scheduledAt:
+          type: string
+          format: date-time
+          description: Date and time when the lesson occurs or occurred
+          examples: ["2025-01-20T10:00:00Z"]
+
+    LiveLesson:
+      type: object
+      description: |
+        Full live lesson shape for **detailed** endpoints (`GET /live-lessons-detailed`). Includes
+        `type` and `level` for internal PoC and capability discussion; the platform does not
+        reliably supply these fields in production.
+      required:
+        # 1. Primary Identifier
+        - id
+        # 2. Relationships
+        - institutionUserId
+        - userEmail
+        # 3. Lesson Classification
+        - type
+        - language
+        - level
+        # 4. Status
+        - status
+        # 5. Lifecycle Timestamps
+        - bookedAt
+        - scheduledAt
+      properties:
+        # 1. Primary Identifier
+        id:
+          type: string
+          format: uuid
+          description: Unique live lesson identifier
+          examples: ["68235e4f-fa67-27e9-d64d-8339a1b2c3d4"]
+
+        # 2. Relationships
+        institutionUserId:
+          type: string
+          format: uuid
+          description: Institution user identifier (foreign key to User.institutionUserId)
+          examples: ["f1e2d3c4-b5a6-4c7d-8e9f-0a1b2c3d4e5f"]
+
+        userEmail:
+          type: string
+          format: email
+          description: User's email address
+          examples: ["john.doe@example.com"]
+
+        # 3. Lesson Classification
+        type:
+          type: string
+          enum: [group, private]
+          description: Type of live lesson
+          examples: ["group"]
+
+        language:
+          type: string
+          enum: [EN, ES, FR, DE, IT, PT, NL, JA, KO, PL, RU, TR, ZH, AR]
+          description: Language code for the lesson
+          examples: ["ES"]
+
+        level:
+          type: string
+          enum: [A1, A2, B1, B2, C1]
+          description: CEFR language level
+          examples: ["A1"]
+
+        # 4. Status
+        status:
+          type: string
+          enum: [pending, completed, cancelled, missed]
+          description: Status of the live lesson
+          examples: ["completed"]
+
+        # 5. Lifecycle Timestamps
+        bookedAt:
+          type: string
+          format: date-time
+          description: When the lesson was booked (user action timestamp)
+          examples: ["2025-01-15T08:00:00Z"]
+
+        scheduledAt:
+          type: string
+          format: date-time
+          description: Date and time when the lesson occurs or occurred
+          examples: ["2025-01-20T10:00:00Z"]
+
+    LiveLessonWithoutInstitutionUserId:
+      type: object
+      description: |
+        Detailed live lesson row without institutionUserId and userEmail (user context at response root).
+        Used by `GET /users/{institutionUserId}/live-lessons-detailed`. Includes `type` and `level`
+        for PoC; those attributes are not reliably sourced from the platform.
+      required:
+        # 1. Primary Identifier
+        - id
+        # 3. Lesson Classification
+        - type
+        - language
+        - level
+        # 4. Status
+        - status
+        # 5. Lifecycle Timestamps
+        - bookedAt
+        - scheduledAt
+      properties:
+        # 1. Primary Identifier
+        id:
+          type: string
+          format: uuid
+          description: Unique live lesson identifier
+          examples: ["68235e4f-fa67-27e9-d64d-8339a1b2c3d4"]
+
+        # 3. Lesson Classification
+        type:
+          type: string
+          enum: [group, private]
+          description: Type of live lesson
+          examples: ["group"]
+
+        language:
+          type: string
+          enum: [EN, ES, FR, DE, IT, PT, NL, JA, KO, PL, RU, TR, ZH, AR]
+          description: Language code for the lesson
+          examples: ["ES"]
+
+        level:
+          type: string
+          enum: [A1, A2, B1, B2, C1]
+          description: CEFR language level
+          examples: ["A1"]
+
+        # 4. Status
+        status:
+          type: string
+          enum: [pending, completed, cancelled, missed]
+          description: Status of the live lesson
+          examples: ["completed"]
+
+        # 5. Lifecycle Timestamps
+        bookedAt:
+          type: string
+          format: date-time
+          description: When the lesson was booked (user action timestamp)
+          examples: ["2025-01-15T08:00:00Z"]
+
+        scheduledAt:
+          type: string
+          format: date-time
+          description: Date and time when the lesson occurs or occurred
+          examples: ["2025-01-20T10:00:00Z"]
+
+    CertificateSummary:
+      type: object
+      description: Aggregated statistics for user's certificates
+      required:
+        - totalCertificates
+        - totalCertificatesActive
+        - totalCertificatesExpired
+        - totalCertificatesRevoked
+      properties:
+        totalCertificates:
+          type: integer
+          minimum: 0
+          description: Total number of certificates
+          examples: [5]
+
+        totalCertificatesActive:
+          type: integer
+          minimum: 0
+          description: Count of certificates with status "active"
+          examples: [3]
+
+        totalCertificatesExpired:
+          type: integer
+          minimum: 0
+          description: Count of certificates with status "expired"
+          examples: [1]
+
+        totalCertificatesRevoked:
+          type: integer
+          minimum: 0
+          description: Count of certificates with status "revoked"
+          examples: [1]
+
+    Certificate:
+      type: object
+      description: >
+        Certificate model representing a digital credential issued upon course completion.
+        Multiple certificates are allowed for the same user and course combination - each certificate
+        represents a separate issuance. For example, a user can retake a course assessment and receive
+        a new certificate with a different grade. Each certificate maintains its own immutable grade
+        snapshot at issuance time and references the source progress record via progressId.
+      required:
+        # 1. Primary Identifier
+        - id
+        # 2. Relationships
+        - institutionUserId
+        - userEmail
+        - courseId
+        # 3. Core Content
+        - title
+        - status
+        # 4. Classification & Achievement
+        - language
+        - level
+        # 5. Provider & Media
+        - providerId
+        - url
+        # 6. Lifecycle Timestamps
+        - issuedAt
+      properties:
+        # 1. Primary Identifier
+        id:
+          type: string
+          format: uuid
+          description: Unique certificate identifier
+          examples: ["68235e4f-fa67-27e9-d64d-8339a1b2c3d4"]
+
+        # 2. Relationships
+        institutionUserId:
+          type: string
+          format: uuid
+          description: Institution user identifier (foreign key to User.institutionUserId)
+          examples: ["f1e2d3c4-b5a6-4c7d-8e9f-0a1b2c3d4e5f"]
+
+        userEmail:
+          type: string
+          format: email
+          description: User's email address
+          examples: ["john.doe@example.com"]
+
+        courseId:
+          type: string
+          description: Course identifier that this certificate is associated with
+          examples: ["pack_level_en_b2"]
+
+        progressId:
+          type: string
+          format: uuid
+          description: Reference to the source progress record that this certificate is based on. The certificate grade is an immutable snapshot derived from the progress record's score at the time of certificate issuance.
+          examples: ["2ed43c78-b5a6-4c7d-8e9f-0a1b2c3d4e5f"]
+
+        # 3. Core Content
+        title:
+          type: string
+          description: Title of the certificate
+          examples: ["English Upper Intermediate (B2)"]
+
+        status:
+          type: string
+          enum: [active, expired, revoked]
+          description: Status of the certificate
+          examples: ["active"]
+
+        # 4. Classification & Achievement
+        language:
+          type: string
+          enum: [EN, ES, FR, DE, IT, PT, NL, JA, KO, PL, RU, TR, ZH, AR]
+          description: Language code for the certificate
+          examples: ["EN"]
+
+        level:
+          type: string
+          enum: [A1, A2, B1, B2, C1]
+          description: CEFR language level
+          examples: ["B2"]
+
+        grade:
+          type: string
+          enum: [A+, A, A-, B+, B, B-, C+, C, C-, F]
+          description: >
+            Grade assigned to the certificate. This grade is a snapshot derived from the completion score
+            in the associated progress record (referenced by progressId) at the time of certificate issuance.
+            The grade is immutable and does not change after issuance, even if the source progress record is updated.
+
+            Grading scale:
+            - A+: 96-100
+            - A: 93-95
+            - A-: 90-92
+            - B+: 87-89
+            - B: 83-86
+            - B-: 80-82
+            - C+: 77-79
+            - C: 73-76
+            - C-: 70-72
+            - F: 0-69
+          examples: ["A"]
+
+        # 5. Provider & Media
+        providerId:
+          type: string
+          description: 'Certificate issuer/provider identifier (default: "Busuu Premium Language Learning")'
+          examples: ["Busuu Premium Language Learning"]
+
+        url:
+          type: string
+          format: uri
+          description: URL to the online certificate or issuer
+          examples:
+            [
+              "https://certificates.busuu.com/68235e4f-fa67-27e9-d64d-8339a1b2c3d4",
+            ]
+
+        thumbnailUrl:
+          type: [string, "null"]
+          format: uri
+          description: URL of an image which will be shown in the LMS (optional)
+          examples: ["https://cdn.busuu.com/certificates/en-b2-thumbnail.jpg"]
+
+        # 6. Lifecycle Timestamps
+        issuedAt:
+          type: string
+          format: date-time
+          description: Date when the certificate was issued
+          examples: ["2025-01-20T10:00:00Z"]
+
+        expiresAt:
+          type: [string, "null"]
+          format: date-time
+          description: Date when the certificate expires (null if non-expiring)
+          examples: ["2026-01-20T10:00:00Z"]
+
+        revokedAt:
+          type: [string, "null"]
+          format: date-time
+          description: Timestamp when certificate was revoked (null if not revoked)
+          examples: ["2025-06-15T10:00:00Z"]
+
+    CertificateWithoutInstitutionUserId:
+      type: object
+      description: Certificate record without institutionUserId and userEmail fields (used in user-specific certificate responses where user context is provided separately)
+      required:
+        # 1. Primary Identifier
+        - id
+        # 2. Relationships
+        - courseId
+        # 3. Core Content
+        - title
+        - status
+        # 4. Classification & Achievement
+        - language
+        - level
+        # 5. Provider & Media
+        - providerId
+        - url
+        # 6. Lifecycle Timestamps
+        - issuedAt
+      properties:
+        # 1. Primary Identifier
+        id:
+          type: string
+          format: uuid
+          description: Unique certificate identifier
+          examples: ["68235e4f-fa67-27e9-d64d-8339a1b2c3d4"]
+
+        # 2. Relationships
+        courseId:
+          type: string
+          description: Course identifier that this certificate is associated with
+          examples: ["pack_level_en_b2"]
+
+        progressId:
+          type: string
+          format: uuid
+          description: Reference to the source progress record that this certificate is based on. The certificate grade is an immutable snapshot derived from the progress record's score at the time of certificate issuance.
+          examples: ["2ed43c78-b5a6-4c7d-8e9f-0a1b2c3d4e5f"]
+
+        # 3. Core Content
+        title:
+          type: string
+          description: Title of the certificate
+          examples: ["English Upper Intermediate (B2)"]
+
+        status:
+          type: string
+          enum: [active, expired, revoked]
+          description: Status of the certificate
+          examples: ["active"]
+
+        # 4. Classification & Achievement
+        language:
+          type: string
+          enum: [EN, ES, FR, DE, IT, PT, NL, JA, KO, PL, RU, TR, ZH, AR]
+          description: Language code for the certificate
+          examples: ["EN"]
+
+        level:
+          type: string
+          enum: [A1, A2, B1, B2, C1]
+          description: CEFR language level
+          examples: ["B2"]
+
+        grade:
+          type: string
+          enum: [A+, A, A-, B+, B, B-, C+, C, C-, F]
+          description: >
+            Grade assigned to the certificate. This grade is a snapshot derived from the completion score
+            in the associated progress record (referenced by progressId) at the time of certificate issuance.
+            The grade is immutable and does not change after issuance, even if the source progress record is updated.
+
+            Grading scale:
+            - A+: 96-100
+            - A: 93-95
+            - A-: 90-92
+            - B+: 87-89
+            - B: 83-86
+            - B-: 80-82
+            - C+: 77-79
+            - C: 73-76
+            - C-: 70-72
+            - F: 0-69
+          examples: ["A"]
+
+        # 5. Provider & Media
+        providerId:
+          type: string
+          description: 'Certificate issuer/provider identifier (default: "Busuu Premium Language Learning")'
+          examples: ["Busuu Premium Language Learning"]
+
+        url:
+          type: string
+          format: uri
+          description: URL to the online certificate or issuer
+          examples:
+            [
+              "https://certificates.busuu.com/68235e4f-fa67-27e9-d64d-8339a1b2c3d4",
+            ]
+
+        thumbnailUrl:
+          type: [string, "null"]
+          format: uri
+          description: URL of an image which will be shown in the LMS (optional)
+          examples: ["https://cdn.busuu.com/certificates/en-b2-thumbnail.jpg"]
+
+        # 6. Lifecycle Timestamps
+        issuedAt:
+          type: string
+          format: date-time
+          description: Date when the certificate was issued
+          examples: ["2025-01-20T10:00:00Z"]
+
+        expiresAt:
+          type: [string, "null"]
+          format: date-time
+          description: Date when the certificate expires (null if non-expiring)
+          examples: ["2026-01-20T10:00:00Z"]
+
+        revokedAt:
+          type: [string, "null"]
+          format: date-time
+          description: Timestamp when certificate was revoked (null if not revoked)
+          examples: ["2025-06-15T10:00:00Z"]
+
+    Pagination:
+      type: object
+      required:
+        - page
+        - limit
+        - total
+        - totalPages
+      properties:
+        page:
+          type: integer
+          minimum: 1
+          description: Current page number
+          examples: [1]
+
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 100
+          description: Items per page
+          examples: [25]
+
+        total:
+          type: integer
+          minimum: 0
+          description: Total number of items
+          examples: [150]
+
+        totalPages:
+          type: integer
+          minimum: 0
+          description: Total number of pages
+          examples: [6]
+
+        hasNext:
+          type: boolean
+          description: Whether there is a next page
+          examples: [true]
+
+        hasPrevious:
+          type: boolean
+          description: Whether there is a previous page
+          examples: [false]
+
+    Error:
+      type: object
+      required:
+        - code
+        - message
+        - timestamp
+      properties:
+        code:
+          type: string
+          description: Error code
+          examples: ["VALIDATION_ERROR"]
+
+        message:
+          type: string
+          description: Human-readable error message
+          examples: ["Invalid request parameters"]
+
+        details:
+          type: object
+          description: Additional error details
+          additionalProperties: true
+        timestamp:
+          type: string
+          format: date-time
+          description: Error timestamp
+          examples: ["2025-01-20T21:01:58Z"]
+
+        requestId:
+          type: string
+          format: uuid
+          description: Unique request identifier for debugging (UUID)
+          examples: ["a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d"]
+
+  responses:
+    BadRequest:
+      description: Bad request - invalid parameters or malformed request
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          examples:
+            default:
+              value:
+                code: "VALIDATION_ERROR"
+                message: "Invalid request parameters"
+                details:
+                  field: "page"
+                  reason: "Must be a positive integer"
+                timestamp: "2025-01-20T21:01:58Z"
+                requestId: "a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d"
+
+    Unauthorized:
+      description: Unauthorized - invalid or missing authentication
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          examples:
+            default:
+              value:
+                code: "UNAUTHORIZED"
+                message: "Invalid or expired access token"
+                timestamp: "2025-01-20T21:01:58Z"
+                requestId: "a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d"
+
+    Forbidden:
+      description: Forbidden - insufficient permissions
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          examples:
+            default:
+              value:
+                code: "FORBIDDEN"
+                message: "Insufficient permissions to access this resource"
+                timestamp: "2025-01-20T21:01:58Z"
+                requestId: "a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d"
+
+    NotFound:
+      description: Not found - resource does not exist
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          examples:
+            default:
+              value:
+                code: "NOT_FOUND"
+                message: "Resource not found"
+                timestamp: "2025-01-20T21:01:58Z"
+                requestId: "a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d"
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          examples:
+            default:
+              value:
+                code: "INTERNAL_ERROR"
+                message: "An unexpected error occurred"
+                timestamp: "2025-01-20T21:01:58Z"
+                requestId: "a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d"
+
+tags:
+  - name: Authentication
+    description: "API authentication and token management. Use OAuth2 client credentials flow to obtain JWT access tokens. Tokens are required for all endpoints except /auth/token and /utilities/health."
+
+  - name: Users
+    description: "Enhanced user information and management. Access user data with organisational context including institution, department, role, and team assignments. Supports filtering by status, role, and department."
+
+  - name: Courses
+    description: "Optimised course catalogue with provider metadata. Courses organised by CEFR levels (A1-C1) with difficulty ratings and SSO launch URLs for seamless integration."
+
+  - name: Progress
+    description: "Progress: completion status, lesson progress, duration. GET /users/{institutionUserId}/progress returns user once at root (not per row)."
+
+  - name: Live Lessons
+    description: "Lean: no illustrative type/level, no enriched summary. Detailed: ideal PoC with summary + illustrative type/level. 45 min per lesson."
+
+  - name: Certificates
+    description: "Certificate tracking and digital credentialing with language, CEFR level, status, and expiration dates. Supports external display of certifications."
+
+  - name: Utilities
+    description: "System utilities and health checks. Health endpoint requires no authentication and returns API status, version, and uptime. Use for monitoring and version verification."
