@@ -2355,7 +2355,7 @@ components:
         expiresAt:
           type: string
           format: date-time
-          description: Account expiration timestamp
+          description: Date when the user's access expires. May be set at the institution (tenancy) level, applying uniformly to all users, or overridden at the individual user level.
           examples: ["2025-01-20T21:01:58Z"]
 
         removedAt:
@@ -2720,10 +2720,9 @@ components:
           description: >
             Total learning time in minutes.
             - Initialized to 0 when progress record is created
-            - Populated with course.duration when status becomes 'completed'
+            - Populated with actual learning time when status becomes 'completed'
             - Behavior during 'in_progress' is implementation-dependent (may remain 0 or increment)
-            This field represents the standard course duration once completed,
-            not necessarily the actual time the user spent learning.
+            When lessonsCompleted equals lessonsTotal, this value reflects the actual time the user spent learning.
           examples: [1110]
 
         # 5. Completion Outcome (nullable)
@@ -2823,10 +2822,9 @@ components:
           description: >
             Total learning time in minutes.
             - Initialized to 0 when progress record is created
-            - Populated with course.duration when status becomes 'completed'
+            - Populated with actual learning time when status becomes 'completed'
             - Behavior during 'in_progress' is implementation-dependent (may remain 0 or increment)
-            This field represents the standard course duration once completed,
-            not necessarily the actual time the user spent learning.
+            When lessonsCompleted equals lessonsTotal, this value reflects the actual time the user spent learning.
           examples: [1110]
 
         # 5. Completion Outcome (nullable)
@@ -2952,7 +2950,7 @@ components:
         scheduledAt:
           type: string
           format: date-time
-          description: Date and time when the lesson occurs or occurred
+          description: Scheduled start time of the lesson. For pending lessons, this is a future datetime; for completed, missed, or cancelled lessons, this reflects the original booking time.
           examples: ["2025-01-20T10:00:00Z"]
 
     LiveLessonLeanWithoutInstitutionUserId:
@@ -2994,7 +2992,7 @@ components:
         scheduledAt:
           type: string
           format: date-time
-          description: Date and time when the lesson occurs or occurred
+          description: Scheduled start time of the lesson. For pending lessons, this is a future datetime; for completed, missed, or cancelled lessons, this reflects the original booking time.
           examples: ["2025-01-20T10:00:00Z"]
 
     LiveLesson:
@@ -3075,7 +3073,7 @@ components:
         scheduledAt:
           type: string
           format: date-time
-          description: Date and time when the lesson occurs or occurred
+          description: Scheduled start time of the lesson. For pending lessons, this is a future datetime; for completed, missed, or cancelled lessons, this reflects the original booking time.
           examples: ["2025-01-20T10:00:00Z"]
 
     LiveLessonWithoutInstitutionUserId:
@@ -3140,7 +3138,7 @@ components:
         scheduledAt:
           type: string
           format: date-time
-          description: Date and time when the lesson occurs or occurred
+          description: .
           examples: ["2025-01-20T10:00:00Z"]
 
     CertificateSummary:
