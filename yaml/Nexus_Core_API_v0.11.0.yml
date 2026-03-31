@@ -1,6 +1,6 @@
 openapi: 3.1.0
 info:
-  title: Busuu Nexus Core API
+  title: Nexus Core API
   description: |
     A public-facing API for LMS integrations and data access.
 
@@ -78,16 +78,17 @@ info:
 
   version: 0.11.0
   contact:
-    name: Busuu API Team
-    email: api-support@busuu.com
+    name: Nexus API Team
+    email: api-support@nexus.com
+    url: https://nexus.com
   license:
     name: Proprietary
-    url: https://busuu.com/terms
+    url: https://nexus.com/terms
 
 servers:
-  - url: https://api.example.com/v1
+  - url: https://api.nexus.com/v1
     description: Production server (URL to be determined)
-  - url: https://api-staging.example.com/v1
+  - url: https://api-staging.nexus.com/v1
     description: Staging server (URL to be determined)
 
 security:
@@ -195,6 +196,8 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "400":
           $ref: "#/components/responses/BadRequest"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
 
   # Users
   /users:
@@ -343,6 +346,8 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
 
   /users/{institutionUserId}:
     get:
@@ -401,6 +406,8 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
 
   # Courses
   /courses:
@@ -589,6 +596,8 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
 
   /courses/{id}:
     get:
@@ -699,6 +708,8 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
 
   # Progress
   /progress:
@@ -849,6 +860,8 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
 
   /users/{institutionUserId}/progress:
     get:
@@ -986,6 +999,8 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
 
   # Live Lessons
   /live-lessons:
@@ -1134,6 +1149,8 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
 
   /users/{institutionUserId}/live-lessons:
     get:
@@ -1262,6 +1279,8 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
 
   /live-lessons-detailed:
     get:
@@ -1437,6 +1456,8 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
 
   /users/{institutionUserId}/live-lessons-detailed:
     get:
@@ -1604,6 +1625,8 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
 
   # Certificates
   /certificates:
@@ -1796,6 +1819,8 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
 
   /users/{institutionUserId}/certificates:
     get:
@@ -1977,6 +2002,8 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
 
   # Utilities
   /utilities/health:
@@ -2042,6 +2069,9 @@ paths:
                           "External service timeout",
                         ],
                       ]
+
+        "500":
+          $ref: "#/components/responses/InternalServerError"
 
 components:
   securitySchemes:
@@ -2493,8 +2523,9 @@ components:
         # 5. Integration
         launchUrl:
           type: string
-          format: uri
-          description: SSO URL to launch the course with templated institution and course IDs
+          description: |
+            SSO URL to launch the course. Contains `{{busuuInstitutionId}}` and `{{courseId}}`
+            placeholders for LMS connectors to replace; the resolved value is a valid HTTPS URL.
           examples:
             [
               "https://sso.busuu.com/saml/{{busuuInstitutionId}}/login?course={{courseId}}",
@@ -2727,9 +2758,13 @@ components:
 
         # 5. Completion Outcome (nullable)
         result:
-          type: [string, "null"]
-          enum: [pass, fail]
-          description: Completion result (only when status is completed)
+          anyOf:
+            - type: "null"
+            - type: string
+              enum: [pass, fail]
+          description: |
+            Completion result (`pass` or `fail`) when status is `completed`; `null` while `in_progress`
+            or before a result exists.
           examples: ["pass"]
 
         score:
@@ -2829,9 +2864,13 @@ components:
 
         # 5. Completion Outcome (nullable)
         result:
-          type: [string, "null"]
-          enum: [pass, fail]
-          description: Completion result (only when status is completed)
+          anyOf:
+            - type: "null"
+            - type: string
+              enum: [pass, fail]
+          description: |
+            Completion result (`pass` or `fail`) when status is `completed`; `null` while `in_progress`
+            or before a result exists.
           examples: ["pass"]
 
         score:
@@ -3595,22 +3634,22 @@ components:
 
 tags:
   - name: Authentication
-    description: "API authentication and token management. Use OAuth2 client credentials flow to obtain JWT access tokens. Tokens are required for all endpoints except /auth/token and /utilities/health."
+    description: API authentication and token management. Use OAuth2 client credentials flow to obtain JWT access tokens. Tokens are required for all endpoints except /auth/token and /utilities/health.
 
-  - name: Users
-    description: "Enhanced user information and management. Access user data with organisational context including institution, department, role, and team assignments. Supports filtering by status, role, and department."
+  - name: Certificates
+    description: "Certificate tracking and digital credentialing with language, CEFR level, status, and expiration dates. Supports external display of certifications."
 
   - name: Courses
-    description: "Optimised course catalogue with provider metadata. Courses organised by CEFR levels (A1-C1) with difficulty ratings and SSO launch URLs for seamless integration."
-
-  - name: Progress
-    description: "Progress: completion status, lesson progress, duration. GET /users/{institutionUserId}/progress returns user once at root (not per row)."
+    description: Optimised course catalogue with provider metadata. Courses organised by CEFR levels (A1-C1) with difficulty ratings and SSO launch URLs for seamless integration.
 
   - name: Live Lessons
     description: "Lean: no illustrative type/level, no enriched summary. Detailed: ideal PoC with summary + illustrative type/level. 45 min per lesson."
 
-  - name: Certificates
-    description: "Certificate tracking and digital credentialing with language, CEFR level, status, and expiration dates. Supports external display of certifications."
+  - name: Progress
+    description: "Progress: completion status, lesson progress, duration. GET /users/{institutionUserId}/progress returns user once at root (not per row)."
+
+  - name: Users
+    description: "Enhanced user information and management. Access user data with organisational context including institution, department, role, and team assignments. Supports filtering by status, role, and department."
 
   - name: Utilities
     description: "System utilities and health checks. Health endpoint requires no authentication and returns API status, version, and uptime. Use for monitoring and version verification."
