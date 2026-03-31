@@ -7,7 +7,7 @@ info:
     This API provides read-only access to core Busuu learning data including:
     - Enhanced user information with organisational context
     - Optimised course catalogs with provider-level metadata
-    - Aligned progress tracking with course duration consistency
+    - Progress tracking with cumulative learning time (minutes on-task per enrollment)
     - Live lesson tracking with aggregation and summary statistics
     - Certificate tracking with digital credentialing support
 
@@ -737,13 +737,14 @@ paths:
         - Status: status (in_progress/completed)
         - Metrics: progressPercentage (0-100), lessonsCompleted, lessonsTotal
         - Completion: result (pass/fail), score (0-100)
-        - Duration: learningDuration (minutes) - populated when completed
+        - Duration: learningDuration (minutes) — cumulative recorded learning time for this enrollment
         - Timestamps: startedAt, lastAccessedAt, completedAt
 
-        **Learning Duration Behavior:**
-        - Initialized to 0 when progress record created
-        - Populated with course.duration when status becomes 'completed'
-        - Represents standard course duration, not actual time spent
+        **Learning duration (`learningDuration`):**
+        - Minutes of recorded learning activity for this user and course enrollment (time-on-task), not `Course.duration` (estimated catalogue length).
+        - Starts at 0 when the progress record is created.
+        - Cumulative minutes recorded so far (0 until activity exists); increases as the learner accrues recorded activity.
+        - Status `completed` does **not** freeze this value — it can continue to increase if the learner undertakes further recorded activity on the same enrollment (e.g. revision or retake of content).
 
         **Authentication:** Required (Bearer token)
 
@@ -892,13 +893,13 @@ paths:
           - `completedAt`: null
           - `result`: null
           - `score`: null
-          - `learningDuration`: typically 0 (implementation-dependent during in_progress)
+          - `learningDuration`: cumulative minutes of recorded learning activity so far (0 until activity exists)
         - `completed`:
           - `progressPercentage`: 100
           - `completedAt`: timestamp when finished
           - `result`: `pass` or `fail`
           - `score`: final score 0–100
-          - `learningDuration`: populated with course duration
+          - `learningDuration`: cumulative minutes of recorded learning activity to date (can still increase after completion if revision or retake adds recorded time)
 
         **Authentication:** Required (Bearer token)
 
@@ -2561,7 +2562,10 @@ components:
         archivedAt:
           type: [string, "null"]
           format: date-time
-          description: Timestamp when course was archived (null if active)
+          description: >
+            Timestamp when the course was archived, when the product records that event.
+            `null` while the course is active, or when archived state exists but no discrete archival timestamp is stored
+            (integrators may use `status` and `updatedAt` in that case).
           examples: ["2025-12-31T23:59:59Z"]
 
     Provider:
@@ -2749,11 +2753,11 @@ components:
           type: integer
           minimum: 0
           description: >
-            Total learning time in minutes.
-            - Initialized to 0 when progress record is created
-            - Populated with actual learning time when status becomes 'completed'
-            - Behavior during 'in_progress' is implementation-dependent (may remain 0 or increment)
-            When lessonsCompleted equals lessonsTotal, this value reflects the actual time the user spent learning.
+            Cumulative minutes of recorded learning activity for this user and course enrollment (time-on-task).
+            This is not `Course.duration` (estimated catalogue length).
+            Starts at 0 when the progress record is created, then increases as recorded activity accrues.
+            Status `completed` does not freeze this value: further recorded activity on the same enrollment
+            (e.g. revision or retake of content) can continue to increase it.
           examples: [1110]
 
         # 5. Completion Outcome (nullable)
@@ -2763,15 +2767,19 @@ components:
             - type: string
               enum: [pass, fail]
           description: |
-            Completion result (`pass` or `fail`) when status is `completed`; `null` while `in_progress`
-            or before a result exists.
+            Assessed completion outcome (`pass` or `fail`) when status is `completed` and the product records one
+            for the enrollment; `null` while `in_progress` or when no pass/fail outcome applies.
+            Enterprise LMS integrations built on existing Busuu connector patterns expect this alongside completion;
+            it is independent of `progressPercentage` (lesson coverage).
           examples: ["pass"]
 
         score:
           type: [integer, "null"]
           minimum: 0
           maximum: 100
-          description: Completion score percentage
+          description: |
+            Assessed score for the completion (0–100) when status is `completed` and a score exists; `null` otherwise.
+            Pairs with `result` for integrations that report graded outcomes to the LMS.
           examples: [85]
 
         # 6. Lifecycle Timestamps
@@ -2855,11 +2863,11 @@ components:
           type: integer
           minimum: 0
           description: >
-            Total learning time in minutes.
-            - Initialized to 0 when progress record is created
-            - Populated with actual learning time when status becomes 'completed'
-            - Behavior during 'in_progress' is implementation-dependent (may remain 0 or increment)
-            When lessonsCompleted equals lessonsTotal, this value reflects the actual time the user spent learning.
+            Cumulative minutes of recorded learning activity for this user and course enrollment (time-on-task).
+            This is not `Course.duration` (estimated catalogue length).
+            Starts at 0 when the progress record is created, then increases as recorded activity accrues.
+            Status `completed` does not freeze this value: further recorded activity on the same enrollment
+            (e.g. revision or retake of content) can continue to increase it.
           examples: [1110]
 
         # 5. Completion Outcome (nullable)
@@ -2869,15 +2877,19 @@ components:
             - type: string
               enum: [pass, fail]
           description: |
-            Completion result (`pass` or `fail`) when status is `completed`; `null` while `in_progress`
-            or before a result exists.
+            Assessed completion outcome (`pass` or `fail`) when status is `completed` and the product records one
+            for the enrollment; `null` while `in_progress` or when no pass/fail outcome applies.
+            Enterprise LMS integrations built on existing Busuu connector patterns expect this alongside completion;
+            it is independent of `progressPercentage` (lesson coverage).
           examples: ["pass"]
 
         score:
           type: [integer, "null"]
           minimum: 0
           maximum: 100
-          description: Completion score percentage
+          description: |
+            Assessed score for the completion (0–100) when status is `completed` and a score exists; `null` otherwise.
+            Pairs with `result` for integrations that report graded outcomes to the LMS.
           examples: [85]
 
         # 6. Lifecycle Timestamps
@@ -3646,7 +3658,7 @@ tags:
     description: "Lean: no illustrative type/level, no enriched summary. Detailed: ideal PoC with summary + illustrative type/level. 45 min per lesson."
 
   - name: Progress
-    description: "Progress: completion status, lesson progress, duration. GET /users/{institutionUserId}/progress returns user once at root (not per row)."
+    description: "Progress: completion status, lesson progress, cumulative recorded learning time (minutes). GET /users/{institutionUserId}/progress returns user once at root (not per row)."
 
   - name: Users
     description: "Enhanced user information and management. Access user data with organisational context including institution, department, role, and team assignments. Supports filtering by status, role, and department."
