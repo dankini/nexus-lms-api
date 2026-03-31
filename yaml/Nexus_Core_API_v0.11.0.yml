@@ -3189,7 +3189,7 @@ components:
         scheduledAt:
           type: string
           format: date-time
-          description: .
+          description: Scheduled start time of the lesson. For pending lessons, this is a future datetime; for completed, missed, or cancelled lessons, this reflects the original booking time.
           examples: ["2025-01-20T10:00:00Z"]
 
     CertificateSummary:
