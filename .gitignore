@@ -1,3 +1,6 @@
 books/
 business-proposal-confluence/
 strategy-tactical/
+
+# Claude Code — local Bash permission allowlist (developer-specific)
+.claude/settings.local.json
