@@ -44,14 +44,20 @@
   - [⚙️ v0.10.0 OpenAPI YAML Spec](#v0100-openapi-yaml-spec)
   - [🔗 v0.10.0 Swaggerhub Docs](#v0100-swaggerhub-docs)
 - [🧑‍🏫 0.11.0 Refinement: Live Lesson Lean and Detailed Paths](#0110-refinement-live-lesson-lean-and-detailed-paths)
+  - [📋 v0.11.0 Live Lesson Documentation Index](#v0110-live-lesson-documentation-index)
+  - [🧑‍🏫 v0.11.0 Live Lesson Lean & Detailed Model Spec](#v0110-live-lesson-lean-detailed-model-spec)
+  - [🧑‍🏫 v0.11.0 Live Lesson Lean Model Spec](#v0110-live-lesson-lean-model-spec)
   - [⚙️ v0.11.0 OpenAPI YAML Spec](#v0110-openapi-yaml-spec)
   - [🔗 v0.11.0 Swaggerhub Docs](#v0110-swaggerhub-docs)
+- [🧪 0.12.0 Refinement: Example and Mock Alignment (Prism Validation)](#0120-refinement-example-and-mock-alignment-prism-validation)
+  - [⚙️ v0.12.0 OpenAPI YAML Spec](#v0120-openapi-yaml-spec)
+  - [🔗 v0.12.0 Swaggerhub Docs](#v0120-swaggerhub-docs)
 
 ---
 
-**Latest Version (v0.11.0) - March 23, 2026**
+**Latest Version (v0.12.0) - April 1, 2026**
 
-The API has been refined through eleven design iterations. The latest version splits live-lesson read operations into parallel **lean** and **detailed** paths.
+The API has been refined through twelve design iterations. The latest version updates **OpenAPI examples** for realistic mocks (validated with **Prism** and `prism-smoke-test.sh`).
 
 **Lean** endpoints omit `type` and `level` where the upstream platform does not reliably capture them, and omit enriched aggregated `summary` on the user-scoped route.
 
@@ -65,7 +71,7 @@ See [0.11.0 Refinement: Live Lesson Lean and Detailed Paths](#0110-refinement-li
 
 ## Executive Summary
 
-This executive summary provides a comprehensive review of the folder, documenting the complete design phase evolution of the Busuu Nexus Core API from initial proposal through **eleven design iterations** (v0.1.0 through v0.11.0). The design phase demonstrates exceptional iterative improvement, comprehensive technical specifications, and a production-ready OpenAPI 3.1 specification with inline examples.
+This executive summary provides a comprehensive review of the folder, documenting the complete design phase evolution of the Busuu Nexus Core API from initial proposal through **twelve design iterations** (v0.1.0 through v0.12.0). The design phase demonstrates exceptional iterative improvement, comprehensive technical specifications, and a production-ready OpenAPI 3.1 specification with inline examples.
 
 **Design Phase Assessment: 9.5/10** ⭐⭐⭐⭐⭐
 
@@ -120,7 +126,7 @@ This executive summary provides a comprehensive review of the folder, documentin
 
 ### Version Progression:
 
-The API has evolved through eleven complete design iterations from October 24, 2025 through March 23, 2026:
+The API has evolved through twelve complete design iterations from October 24, 2025 through April 1, 2026:
 
 * **v0.1.0** (Oct 24, 2025) - Initial Design
 * **v0.2.0** (Oct 24, 2025) - Nullable Fields & UUIDs
@@ -133,6 +139,7 @@ The API has evolved through eleven complete design iterations from October 24, 2
 * **v0.9.0** (Dec 28, 2025) - Schema Quality Improvements
 * **v0.10.0** (Jan 7, 2026) - Remove Detail Endpoints
 * **v0.11.0** (Mar 23, 2026) - Live lesson lean and detailed paths
+* **v0.12.0** (Apr 1, 2026) - Example and mock alignment (Prism validation); no new endpoints
 
 **Note:** For detailed version progression table with status tracking, see the individual version pages in the [API Design folder](https://busuucom.atlassian.net/wiki/spaces/BP/pages/7368048668).
 
@@ -644,7 +651,9 @@ The API has evolved through eleven complete design iterations from October 24, 2
 * Parallel paths support design comparison; future versions may converge to a single path family (e.g. `view` or projection parameter) once 
 requirements and data quality stabilise.
 
-**Note:** For complete v0.11.0 specification details, endpoint comparison table, and OpenAPI YAML, see [0.11.0 Refinement: Live Lesson Lean and Detailed Paths](#0110-refinement-live-lesson-lean-and-detailed-paths) page.
+**Note:** For complete v0.11.0 specification details, endpoint comparison table, OpenAPI YAML, live-lesson examples, design benefits, and Confluence-only child pages (documentation index, lean / lean-detailed model specs), see [0.11.0 Refinement: Live Lesson Lean and Detailed Paths](#0110-refinement-live-lesson-lean-and-detailed-paths) in this document, or the [Confluence refinement page](https://busuucom.atlassian.net/wiki/spaces/BP/pages/7959707649/0.11.0+Refinement+Live+Lesson+Lean+and+Detailed+Paths) and [v0.11.0 Live Lesson Documentation Index](https://busuucom.atlassian.net/wiki/spaces/BP/pages/7989854218/v0.11.0+Live+Lesson+Documentation+Index).
+
+**Note:** For v0.12.0 example and Prism mock alignment (no new endpoints), see [0.12.0 Refinement: Example and Mock Alignment (Prism Validation)](#0120-refinement-example-and-mock-alignment-prism-validation).
 
 ---
 
@@ -5222,7 +5231,7 @@ For human-readable documentation and examples, refer to the sections above in th
 
 **Source:** https://busuucom.atlassian.net/wiki/spaces/BP/pages/7397670978/v0.4.0+Swaggerhub+Docs
 
-**SwaggerHub:** https://app.swaggerhub.com/apis-docs/arlobarlo/busuu-nexus-core-api/0.4.0
+**SwaggerHub:** https://app.swaggerhub.com/apis-docs/arlobarlo/nexus-lms-core-api/0.4.0
 
 **Note:** This page links to SwaggerHub. For interactive API documentation, see the Confluence page directly.
 
@@ -6393,7 +6402,7 @@ Documentation enhancement - improves API overview clarity for new developers rev
 
 **Source:** https://busuucom.atlassian.net/wiki/spaces/BP/pages/7435878408/v0.5.0+Swaggerhub+Docs
 
-**SwaggerHub:** https://app.swaggerhub.com/apis-docs/arlobarlo/busuu-nexus-core-api/0.5.0
+**SwaggerHub:** https://app.swaggerhub.com/apis-docs/arlobarlo/nexus-lms-core-api/0.5.0
 
 **Note:** This page links to SwaggerHub. For interactive API documentation, see the Confluence page directly.
 
@@ -7590,7 +7599,7 @@ For human-readable documentation and examples, refer to the sections above in th
 
 **Source:** https://busuucom.atlassian.net/wiki/spaces/BP/pages/7454359587/v0.6.0+Swaggerhub+Docs
 
-**SwaggerHub:** https://app.swaggerhub.com/apis-docs/arlobarlo/busuu-nexus-core-api/0.6.0
+**SwaggerHub:** https://app.swaggerhub.com/apis-docs/arlobarlo/nexus-lms-core-api/0.6.0
 
 **Note:** This page links to SwaggerHub. For interactive API documentation, see the Confluence page directly.
 
@@ -9903,7 +9912,7 @@ For human-readable documentation and examples, refer to the sections above in th
 
 **Source:** https://busuucom.atlassian.net/wiki/spaces/BP/pages/7642873860/v0.7.0+Swaggerhub+Docs
 
-**SwaggerHub:** https://app.swaggerhub.com/apis-docs/arlobarlo/busuu-nexus-core-api/0.7.0
+**SwaggerHub:** https://app.swaggerhub.com/apis-docs/arlobarlo/nexus-lms-core-api/0.7.0
 
 **Note:** This page links to SwaggerHub. For interactive API documentation, see the Confluence page directly.
 
@@ -10844,7 +10853,7 @@ For human-readable documentation and examples, refer to the sections above in th
 
 **Source:** https://busuucom.atlassian.net/wiki/spaces/BP/pages/7643627592/v0.8.0+Swaggerhub+Docs
 
-**SwaggerHub:** https://app.swaggerhub.com/apis-docs/arlobarlo/busuu-nexus-core-api/0.8.0
+**SwaggerHub:** https://app.swaggerhub.com/apis-docs/arlobarlo/nexus-lms-core-api/0.8.0
 
 **Note:** This page links to SwaggerHub. For interactive API documentation, see the Confluence page directly.
 
@@ -11567,7 +11576,7 @@ For human-readable documentation and examples, refer to the sections above in th
 
 **Source:** https://busuucom.atlassian.net/wiki/spaces/BP/pages/7704150017
 
-**SwaggerHub:** https://app.swaggerhub.com/apis-docs/arlobarlo/busuu-nexus-core-api/0.9.0
+**SwaggerHub:** https://app.swaggerhub.com/apis-docs/arlobarlo/nexus-lms-core-api/0.9.0
 
 **Note:** This page links to SwaggerHub. For interactive API documentation, see the Confluence page directly.
 
@@ -11947,7 +11956,7 @@ For human-readable documentation and examples, refer to the sections above in th
 
 **Source:** https://busuucom.atlassian.net/wiki/spaces/BP/pages/7702708285
 
-**SwaggerHub:** https://app.swaggerhub.com/apis-docs/arlobarlo/busuu-nexus-core-api/0.10.0
+**SwaggerHub:** https://app.swaggerhub.com/apis-docs/arlobarlo/nexus-lms-core-api/0.10.0
 
 **Note:** This page links to SwaggerHub. For interactive API documentation, see the Confluence page directly.
 
@@ -11975,11 +11984,13 @@ For human-readable documentation and examples, refer to the sections above in th
 
 ## Overview
 
-Version 0.11.0 refines live-lesson read operations by introducing parallel **lean** and **detailed** endpoints. After reviewing upstream data quality, **lean** paths omit `type` (group/private) and `level` (CEFR) where the platform does not reliably capture them, and omit **enriched aggregated `summary`** on the user-scoped route so minimal responses stay minimal.
+Version 0.11.0 refines live-lesson read operations by introducing parallel **lean** and **detailed** endpoints. The upstream platform does not reliably capture `type` (group/private) or `level` (CEFR) for live lessons; so **lean** paths omit those fields and omit **enriched aggregated** `summary` on the user-scoped route.
 
-**Detailed** paths (`…/live-lessons-detailed`) retain illustrative `type` and `level`, **enriched `summary`** (counts for the **full filtered result set**, not only the current page of `data`), and matching query filters. They document the **ideal** product and capability surface for internal and partner discussion alongside the integration-grade **lean** contract.
+**Detailed** paths (`…/live-lessons-detailed`) retain illustrative `type` and `level`, **enriched** `summary` (counts for the **full filtered result set**, not only the current page of `data`), and matching query filters, for product and capability discussion.
 
 **Note:** This API has not been implemented yet. This document represents a design specification iteration. **Progress** and **certificate** endpoints are unchanged from v0.10.0.
+
+**Confluence navigation:** [v0.11.0 Live Lesson Documentation Index](https://busuucom.atlassian.net/wiki/spaces/BP/pages/7989854218/v0.11.0+Live+Lesson+Documentation+Index) lists canonical links (refinement narrative, lean model spec, OpenAPI YAML, historical v0.5.0 context).
 
 ---
 
@@ -12049,16 +12060,62 @@ v0.10.0 documented a single `LiveLesson` shape including `type` and `level`, and
 
 ---
 
-## API Endpoints Overview (Live Lessons - v0.11.0 Delta)
+## API Endpoints Overview (Live Lessons — v0.11.0 Delta)
 
 | Method | Endpoint | Description | Notes |
 | --- | --- | --- | --- |
-| GET | `/live-lessons` | List all live lessons | **v0.11.0:** **Lean** contract: trimmed row schema; no `type`/`level` filters |
-| GET | `/users/{institutionUserId}/live-lessons` | Get user live lessons | **v0.11.0:** **Lean** contract: **no** top-level `summary`; trimmed rows |
-| GET | `/live-lessons-detailed` | List all live lessons (detailed) | **New:** `summary`, full row, `type`/`level` filters |
-| GET | `/users/{institutionUserId}/live-lessons-detailed` | Get user live lessons (detailed) | **New:** `user`, `summary`, full row, `type`/`level` filters |
+| GET | `/live-lessons` | List all live lessons | **v0.11.0:** **Lean** contract — trimmed row schema; no `type`/`level` filters |
+| GET | `/users/{institutionUserId}/live-lessons` | Get user live lessons | **v0.11.0:** **Lean** contract — **no** top-level `summary`; trimmed rows |
+| GET | `/live-lessons-detailed` | List all live lessons (detailed) | **New** — `summary` + full row + `type`/`level` filters |
+| GET | `/users/{institutionUserId}/live-lessons-detailed` | Get user live lessons (detailed) | **New** — `user` + `summary` + full row + `type`/`level` filters |
 
 All other endpoints match v0.10.0 unless separately versioned.
+
+---
+
+## API Response Examples
+
+This section documents representative **live lesson** response shapes for v0.11.0. Examples align with `Nexus_Core_API_v0.11.0.yml` inline examples. **Full JSON payloads** (lean and detailed cross-user and user lists, with response structure notes) are published on Confluence: [0.11.0 Refinement: Live Lesson Lean and Detailed Paths](https://busuucom.atlassian.net/wiki/spaces/BP/pages/7959707649/0.11.0+Refinement+Live+Lesson+Lean+and+Detailed+Paths).
+
+### Other resources
+
+Authentication, users, courses, progress, certificates, and utility responses are **unchanged** from v0.10.0 unless separately versioned — see [0.10.0 Refinement: Remove Detail Endpoints](https://busuucom.atlassian.net/wiki/spaces/BP/pages/7663353868) and prior version pages for complete examples.
+
+---
+
+## Data Model Examples
+
+_Progress, certificates, users, and courses are unchanged from v0.10.0 — see prior refinement and model spec pages._
+
+### Live lesson (v0.11.0)
+
+* **Lean row (cross-user):** `LiveLessonLean` — `id`, `institutionUserId`, `userEmail`, `language`, `status`, `bookedAt`, `scheduledAt`.
+* **Lean row (user list):** `LiveLessonLeanWithoutInstitutionUserId` — same without user-identifying columns on each row.
+* **Detailed row:** `LiveLesson` / `LiveLessonWithoutInstitutionUserId` — adds illustrative `type` and `level` (detailed paths only).
+* **Aggregated summary (detailed lists only):** `LiveLessonSummary` on `GET /live-lessons-detailed` and `GET /users/{institutionUserId}/live-lessons-detailed`.
+
+Field-level documentation for **lean** shapes: [v0.11.0 Live Lesson Lean Model Spec](https://busuucom.atlassian.net/wiki/spaces/BP/pages/7960231953/v0.11.0+Live+Lesson+Lean+Model+Spec). Combined lean and detailed URL map and row shapes: [v0.11.0 Live Lesson Lean & Detailed Model Spec](https://busuucom.atlassian.net/wiki/spaces/BP/pages/7990444040/v0.11.0+Live+Lesson+Lean+Detailed+Model+Spec).
+
+---
+
+## Design Benefits
+
+### Advantages
+
+* **Clear integration contract:** Lean paths document what partners can rely on without nullable “maybe” fields for `type` and `level`.
+* **Product and roadmap clarity:** Detailed paths preserve an **ideal** dashboard and reporting shape (enriched `summary`, classification fields) for internal and partner conversations.
+* **Side-by-side comparison:** Parallel URLs avoid polymorphic response ambiguity and keep OpenAPI schemas explicit.
+* **Minimal surface where it matters:** User-scoped lean responses stay small (no redundant user columns per row; no `summary` when counts are not committed).
+
+### Design considerations
+
+* **More endpoints to maintain** until the design converges (four live-lesson reads instead of two).
+* **Consumer education:** Integrations must choose lean vs detailed deliberately; detailed fields must not be treated as production guarantees until upstream data quality supports them.
+* **Documentation drift:** Historical pages that describe a single `LiveLesson` list shape should be read alongside this refinement and the lean model spec.
+
+### Future evolution
+
+* If `type`, `level`, and enriched summaries become reliable, consider collapsing variants behind one resource and an explicit projection or `view` parameter after validation with implementation and partners.
 
 ---
 
@@ -12070,18 +12127,57 @@ The complete OpenAPI specification for this version is maintained in a separate 
 
 **Repository:** `yaml/Nexus_Core_API_v0.11.0.yml` (this repo)
 
-**Confluence (full YAML body):** [v0.11.0 OpenAPI YAML Spec](https://busuucom.atlassian.net/wiki/spaces/BP/pages/7959937045)
+**Confluence (full YAML body):** [v0.11.0 OpenAPI YAML Spec](https://busuucom.atlassian.net/wiki/spaces/BP/pages/7959937045/v0.11.0+OpenAPI+YAML+Spec)
 
 For human-readable documentation and examples, refer to the sections above in this document.
+
+---
+
+<a id="v0110-live-lesson-documentation-index"></a>
+## 📋 v0.11.0 Live Lesson Documentation Index
+
+**Source:** https://busuucom.atlassian.net/wiki/spaces/BP/pages/7989854218/v0.11.0+Live+Lesson+Documentation+Index
+
+**Note:** Canonical navigation for v0.11.0 live-lesson documentation on Confluence: purpose, combined lean and detailed model spec link, and a **Canonical references** table (refinement narrative, lean model spec, OpenAPI YAML, historical v0.5.0 live lesson model). Full content is not duplicated in this export.
+
+---
+
+<a id="v0110-live-lesson-lean-detailed-model-spec"></a>
+## 🧑‍🏫 v0.11.0 Live Lesson Lean & Detailed Model Spec
+
+**Source:** https://busuucom.atlassian.net/wiki/spaces/BP/pages/7990444040/v0.11.0+Live+Lesson+Lean+Detailed+Model+Spec
+
+**Note:** URL map, detailed row shapes, `LiveLessonSummary`, filters, and relationship to v0.5.0 — maintained on Confluence only.
+
+---
+
+<a id="v0110-live-lesson-lean-model-spec"></a>
+## 🧑‍🏫 v0.11.0 Live Lesson Lean Model Spec
+
+**Source:** https://busuucom.atlassian.net/wiki/spaces/BP/pages/7960231953/v0.11.0+Live+Lesson+Lean+Model+Spec
+
+**Note:** In-depth **lean** field specification (`LiveLessonLean`, `LiveLessonLeanWithoutInstitutionUserId`, `UserLiveLessonsLeanResponse`). Full field tables and examples are on Confluence.
+
+---
+
+## Child pages (Confluence)
+
+Published under [0.11.0 Refinement: Live Lesson Lean and Detailed Paths](https://busuucom.atlassian.net/wiki/spaces/BP/pages/7959707649/0.11.0+Refinement+Live+Lesson+Lean+and+Detailed+Paths) in space **BP**:
+
+* [v0.11.0 Live Lesson Documentation Index](https://busuucom.atlassian.net/wiki/spaces/BP/pages/7989854218/v0.11.0+Live+Lesson+Documentation+Index)
+* [v0.11.0 Live Lesson Lean & Detailed Model Spec](https://busuucom.atlassian.net/wiki/spaces/BP/pages/7990444040/v0.11.0+Live+Lesson+Lean+Detailed+Model+Spec)
+* [v0.11.0 Live Lesson Lean Model Spec](https://busuucom.atlassian.net/wiki/spaces/BP/pages/7960231953/v0.11.0+Live+Lesson+Lean+Model+Spec)
+* [v0.11.0 OpenAPI YAML Spec](https://busuucom.atlassian.net/wiki/spaces/BP/pages/7959937045/v0.11.0+OpenAPI+YAML+Spec)
+* [v0.11.0 Swaggerhub Docs](https://busuucom.atlassian.net/wiki/spaces/BP/pages/7960035329/v0.11.0+Swaggerhub+Docs) _(Confluence **embed** content; use this URL in the wiki)_
 
 ---
 
 <a id="v0110-openapi-yaml-spec"></a>
 ## ⚙️ v0.11.0 OpenAPI YAML Spec
 
-**Source:** https://busuucom.atlassian.net/wiki/spaces/BP/pages/7959937045
+**Source:** https://busuucom.atlassian.net/wiki/spaces/BP/pages/7959937045/v0.11.0+OpenAPI+YAML+Spec
 
-**Note:** This page contains OpenAPI YAML code blocks. For the complete OpenAPI 3.1 specification, see the Confluence page directly. (Rename the Confluence page title to drop the stray “Spec2” suffix when convenient.)
+**Note:** This page contains OpenAPI YAML code blocks. For the complete OpenAPI 3.1 specification, see the Confluence page directly.
 
 ---
 
@@ -12090,9 +12186,152 @@ For human-readable documentation and examples, refer to the sections above in th
 
 **Source:** https://busuucom.atlassian.net/wiki/spaces/BP/pages/7960035329/v0.11.0+Swaggerhub+Docs
 
-**SwaggerHub:** https://app.swaggerhub.com/apis-docs/arlobarlo/busuu-nexus-core-api/0.11.0
+**SwaggerHub:** https://app.swaggerhub.com/apis-docs/arlobarlo/nexus-lms-core-api/0.11.0
 
 **Note:** This page links to SwaggerHub. For interactive API documentation, see the Confluence page directly. If the 0.11.0 spec is not yet published to SwaggerHub, use the Confluence embed and the repo YAML until the link resolves.
 
 ---
 
+<a id="0120-refinement-example-and-mock-alignment-prism-validation"></a>
+## 🧪 0.12.0 Refinement: Example and Mock Alignment (Prism Validation)
+
+**Source:** https://busuucom.atlassian.net/wiki/spaces/BP/pages/7999651850/0.12.0+Refinement+Example+and+Mock+Alignment+Prism+Validation
+
+---
+
+## Release Information
+
+| Field | Value |
+| --- | --- |
+| **Project** | UNIFIED API |
+| **Stage** | DESIGN |
+| **Version** | 0.12.0 |
+| **Design Date** | 01/04/2026 |
+| **Status** | DRAFT |
+| **Authors** | @Dan Martinez |
+
+---
+
+## Overview
+
+Version 0.12.0 makes **no changes to endpoint paths, HTTP methods, or response wrapper shapes**. It updates **inline examples** and schema-level **examples** in the OpenAPI document so that mocks (e.g. **Stoplight Prism**) and human readers see **coherent, realistic sample data**. Changes were identified while running **`prism-smoke-test.sh`** against a Prism mock generated from the specification.
+
+**Note:** This API has not been implemented yet. This document represents a design specification iteration. **All routes and schemas match v0.11.0** except for **illustrative example values** and related description text in `info.description` / operation docs where noted below.
+
+**Prior release:** [0.11.0 Refinement: Live Lesson Lean and Detailed Paths](https://busuucom.atlassian.net/wiki/spaces/BP/pages/7959707649/0.11.0+Refinement+Live+Lesson+Lean+and+Detailed+Paths)
+
+---
+
+## Summary of Changes
+
+### 1. OAuth token `scope` examples
+
+**What Changed:**
+
+* Request and response `scope` examples for `POST /auth/token` now include `read:live-lessons` and `read:certificates` alongside `read:users`, `read:courses`, and `read:progress`.
+
+**Why:**
+
+* Smoke testing showed the mock token scope did not reflect all authenticated read surfaces documented elsewhere in the API.
+
+**Impact:**
+
+* Documentation and mock behaviour only; no runtime contract change for a future implementation unless product intentionally limits scopes.
+
+---
+
+### 2. User list and `User` schema examples (`expiresAt`, `removedAt`)
+
+**What Changed:**
+
+* List examples use `expiresAt` approximately **one year after** `registeredAt` instead of same-day values.
+* The `User` schema uses a future-dated `expiresAt` example and `removedAt` with example **`null`** for active accounts so **GET** `/users/{institutionUserId}` mocks align with **GET** `/users` list rows.
+
+**Why:**
+
+* Same-day expiry implied immediate account expiry; a populated `removedAt` on an **active** user contradicted field semantics.
+
+**Impact:**
+
+* Examples and Prism mock payloads only.
+
+---
+
+### 3. Progress examples (`learningDuration` for `in_progress`)
+
+**What Changed:**
+
+* The in-progress sample row uses a **non-zero** `learningDuration` where `lessonsCompleted` is partial, and documentation clarifies that `0` applies only before any recorded activity.
+
+**Why:**
+
+* A partially completed course with zero recorded minutes was misleading for integrators reading the mock.
+
+**Impact:**
+
+* Examples and mock payloads only.
+
+---
+
+### 4. Health check `version` example
+
+**What Changed:**
+
+* `GET /utilities/health` example `version` string updated to **0.12.0**.
+
+**Impact:**
+
+* Examples only.
+
+---
+
+## API Endpoints Overview (v0.12.0)
+
+| Method | Endpoint | Description | Notes |
+| --- | --- | --- | --- |
+| _(unchanged)_ | _(all v0.11.0 paths)_ | _(unchanged)_ | **v0.12.0:** No path or method changes — OpenAPI **examples** updated as above. |
+
+---
+
+## Complete OpenAPI Specification
+
+The complete OpenAPI specification for this version is maintained in a separate YAML file:
+
+**File:** `Nexus_Core_API_v0.12.0.yml`
+
+**Repository:** `yaml/Nexus_Core_API_v0.12.0.yml` (this repo)
+
+**Confluence (full YAML body):** [v0.12.0 OpenAPI YAML Spec](https://busuucom.atlassian.net/wiki/spaces/BP/pages/8000339984/v0.12.0+OpenAPI+YAML+Spec2)
+
+For human-readable documentation and examples, refer to the sections above in this document.
+
+---
+
+## Child pages (Confluence)
+
+Published under [0.12.0 Refinement: Example and Mock Alignment (Prism Validation)](https://busuucom.atlassian.net/wiki/spaces/BP/pages/7999651850/0.12.0+Refinement+Example+and+Mock+Alignment+Prism+Validation) in space **BP**:
+
+* [v0.12.0 OpenAPI YAML Spec](https://busuucom.atlassian.net/wiki/spaces/BP/pages/7999586313/v0.12.0+OpenAPI+YAML+Spec) — full YAML: paste from [GitHub raw](https://raw.githubusercontent.com/dankini/nexus-lms-api/main/yaml/Nexus_Core_API_v0.12.0.yml) into a Code snippet on that page if not yet embedded
+* [v0.12.0 Swaggerhub Docs](https://busuucom.atlassian.net/wiki/spaces/BP/pages/7998865422/v0.12.0+Swaggerhub+Docs)
+
+---
+
+<a id="v0120-openapi-yaml-spec"></a>
+## ⚙️ v0.12.0 OpenAPI YAML Spec
+
+**Source:** https://busuucom.atlassian.net/wiki/spaces/BP/pages/8000339984
+
+**Note:** This page contains OpenAPI YAML code blocks. For the complete OpenAPI 3.1 specification, see the Confluence page directly.
+
+---
+
+<a id="v0120-swaggerhub-docs"></a>
+## 🔗 v0.12.0 Swaggerhub Docs
+
+**Source:** https://busuucom.atlassian.net/wiki/spaces/BP/embed/8002109442
+
+**SwaggerHub:** https://app.swaggerhub.com/apis-docs/arlobarlo/nexus-lms-core-api/0.12.0
+
+**Note:** This page links to SwaggerHub. For interactive API documentation, see the Confluence page directly. If the 0.12.0 spec is not yet published to SwaggerHub, use the Confluence embed and the repo YAML until the link resolves.
+
+---
