@@ -72,16 +72,16 @@ info:
     - Rationale: Detail endpoints for transactional resources were unnecessary for identified use cases
 
     **23 March 2026 (v0.11.0):**
-    Live lessons split into parallel **lean** and **detailed** paths (latest iteration):
-    - `GET /live-lessons` and `GET /users/{institutionUserId}/live-lessons` — **lean** contract: no illustrative `type`/`level`, and no **enriched** aggregated `summary` (minimal rows + pagination only; user lean adds `user` context)
-    - `GET /live-lessons-detailed` and `GET /users/{institutionUserId}/live-lessons-detailed` — **ideal / enriched** contract: same filters as lean counterparts plus illustrative `type`/`level`, and **aggregated `summary`** (status totals across the filtered set, not just the current page)
+    Split live lesson list endpoints into lean and detailed contracts:
+    - List all live lessons (lean) and get user live lessons (lean): minimal lesson rows and pagination; rows omit lesson type and CEFR level; user-specific list omits summary statistics
+    - List all live lessons (detailed) and get user live lessons (detailed): same query filters as lean counterparts; rows include lesson type and CEFR level; summary statistics aggregated over entire filtered result set (not current page only)
 
     **01 April 2026 (v0.12.0):**
-    Example and mock-alignment fixes (no endpoint or schema shape changes):
-    - OAuth token `scope` examples include `read:live-lessons` and `read:certificates` alongside existing read scopes
-    - User list examples: `expiresAt` set to approximately one year after `registeredAt` (not same-day expiry)
-    - `User` schema examples: `expiresAt` future-dated; `removedAt` example `null` for active accounts (detail mock matches list)
-    - Progress examples: `in_progress` row uses non-zero `learningDuration` where lessons are partially completed
+    Updated examples and mock alignment (no endpoint or schema shape changes):
+    - OAuth token scope examples include read:live-lessons and read:certificates alongside existing read scopes
+    - User list examples: expiresAt set approximately one year after registeredAt instead of same-day expiry
+    - User schema examples: expiresAt future-dated; removedAt null for active accounts; detail examples aligned with list examples
+    - Progress examples: in_progress status rows use non-zero learning duration where lessons are partially completed
 
   version: 0.12.0
   contact:
